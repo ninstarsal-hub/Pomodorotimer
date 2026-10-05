@@ -1,0 +1,139 @@
+import { useMemo } from 'react';
+import { useStore } from '../store';
+import { dayKey, fmtMinutes } from '../lib/storage';
+
+export function StatsPanel() {
+  const { sessions, reviewLog, tasks, today } = useStore();
+
+  const data = useMemo(() => {
+    const byDay: Record<string, number> = {};
+    for (const s of sessions) byDay[s.day] = (byDay[s.day] ?? 0) + s.minutes;
+
+    const week = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      const key = dayKey(d);
+      return { key, label: d.toLocaleDateString(undefined, { weekday: 'short' }), minutes: byDay[key] ?? 0 };
+    });
+
+    let streak = 0;
+    const d = new Date();
+    if (!byDay[dayKey(d)]) d.setDate(d.getDate() - 1); // today not started yet doesn't break the streak
+    while (byDay[dayKey(d)]) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    }
+
+    const weekKeys = new Set(week.map((w) => w.key));
+    const weekSessions = sessions.filter((s) => weekKeys.has(s.day));
+    const bySubject: Record<string, number> = {};
+    for (const s of weekSessions) bySubject[s.subject || 'Unlabelled'] = (bySubject[s.subject || 'Unlabelled'] ?? 0) + s.minutes;
+    const subjects = Object.entries(bySubject).sort((a, b) => b[1] - a[1]);
+
+    const rated = weekSessions.filter((s) => s.rating);
+    const avgRating = rated.length ? rated.reduce((a, s) => a + (s.rating ?? 0), 0) / rated.length : null;
+
+    const todaySessions = sessions.filter((s) => s.day === today);
+    const total = sessions.reduce((a, s) => a + s.minutes, 0);
+    return { week, streak, subjects, avgRating, todaySessions, total, weekTotal: weekSessions.reduce((a, s) => a + s.minutes, 0) };
+  }, [sessions, today]);
+
+  const todayReviews = reviewLog[today] ?? { total: 0, correct: 0 };
+  const max = Math.max(60, ...data.week.map((w) => w.minutes));
+  const todayMinutes = data.todaySessions.reduce((a, s) => a + s.minutes, 0);
+  const doneToday = tasks.filter((t) => t.day === today && t.done).length;
+  const recent = [...sessions].reverse().slice(0, 8);
+
+  return (
+    <div className="stack">
+      <div className="tiles">
+        <Tile label="Focused today" value={fmtMinutes(todayMinutes)} sub={`${data.todaySessions.length} block${data.todaySessions.length === 1 ? '' : 's'}`} />
+        <Tile label="Streak" value={`${data.streak} day${data.streak === 1 ? '' : 's'}`} sub={data.streak ? 'Keep it alive' : 'Start one today'} />
+        <Tile label="Recall today" value={todayReviews.total ? `${Math.round((todayReviews.correct / todayReviews.total) * 100)}%` : '—'} sub={`${todayReviews.total} questions`} />
+        <Tile label="Tasks done" value={String(doneToday)} sub="today" />
+      </div>
+
+      <section className="card">
+        <div className="row between">
+          <div className="eyebrow">Focus minutes · last 7 days</div>
+          <span className="muted small">{fmtMinutes(data.weekTotal)} total</span>
+        </div>
+        <div className="bars" role="table" aria-label="Focus minutes per day">
+          {data.week.map((w) => (
+            <div key={w.key} className={`bar-col ${w.key === today ? 'is-today' : ''}`} role="row">
+              <div className="bar-track">
+                <div className="bar" style={{ height: `${(w.minutes / max) * 100}%` }} data-tip={`${w.label}: ${fmtMinutes(w.minutes)}`} role="cell" aria-label={`${w.label}: ${w.minutes} minutes`} />
+              </div>
+              <span className="bar-label" role="rowheader">
+                {w.label}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {data.subjects.length > 0 && (
+        <section className="card">
+          <div className="eyebrow">By subject · this week</div>
+          <ul className="subject-list">
+            {data.subjects.map(([name, min]) => (
+              <li key={name}>
+                <span>{name}</span>
+                <span className="subject-bar">
+                  <span style={{ width: `${(min / data.subjects[0][1]) * 100}%` }} />
+                </span>
+                <span className="muted small">{fmtMinutes(min)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small">Spreading time across subjects (rather than one marathon) gives you spacing and interleaving for free.</p>
+        </section>
+      )}
+
+      {data.avgRating !== null && (
+        <section className="card">
+          <div className="eyebrow">Self-rated focus · this week</div>
+          <p className="big-number">
+            {data.avgRating.toFixed(1)} <span className="muted small">/ 5</span>
+          </p>
+          <p className="muted small">Compare weeks when you change something — a sound preset, timer length, or studying at a different time of day.</p>
+        </section>
+      )}
+
+      <section className="card">
+        <div className="eyebrow">Recent blocks</div>
+        {recent.length === 0 ? (
+          <p className="empty-state">Your completed focus blocks will appear here.</p>
+        ) : (
+          <ul className="session-list">
+            {recent.map((s) => {
+              const t = tasks.find((x) => x.id === s.taskId);
+              return (
+                <li key={s.id}>
+                  <div className="row between">
+                    <span>{t?.title ?? s.intention ?? 'Focus block'}</span>
+                    <span className="muted small">
+                      {new Date(s.at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · {s.minutes}m{s.rating ? ` · ${s.rating}/5` : ''}
+                    </span>
+                  </div>
+                  {s.recall && <p className="muted small recall-note">{s.recall}</p>}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <p className="muted small">All-time: {fmtMinutes(data.total)}</p>
+      </section>
+    </div>
+  );
+}
+
+function Tile({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="tile">
+      <span className="tile-label">{label}</span>
+      <span className="tile-value">{value}</span>
+      <span className="tile-sub">{sub}</span>
+    </div>
+  );
+}
