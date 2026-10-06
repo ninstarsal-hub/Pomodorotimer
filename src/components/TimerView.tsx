@@ -4,6 +4,7 @@ import type { Mode, Task } from '../lib/types';
 import { fmtClock } from '../lib/storage';
 import { BREAK_IDEAS, TIMER_PRESETS } from '../lib/content';
 import { useStore } from '../store';
+import { deckSections, sectionLabel } from '../lib/quiz';
 
 interface Props {
   mode: Mode;
@@ -85,6 +86,7 @@ export function TimerView(p: Props) {
       {!isBreak ? (
         <div className="focus-meta fade-zen">
           <TaskPicker activeTask={activeTask} tasks={p.openTasks} onPick={setActiveTaskId} onOpenToday={p.onOpenToday} />
+          <SectionPicker />
           <input
             className="intention"
             value={p.intention}
@@ -168,5 +170,40 @@ function Breather() {
       <div className={`breather-orb phase-${i}`} />
       <span>{phases[i]}</span>
     </div>
+  );
+}
+
+/** "Studying: Biology · Session 3" — scopes checkpoint quizzes to this section (plus earlier studied ones). */
+function SectionPicker() {
+  const { decks, studyingNow, setStudyingNow, activeTask } = useStore();
+  if (!decks.length) return null;
+  // Put the active task's notes first.
+  const ordered = [...decks].sort((a, b) => Number(b.id === activeTask?.deckId) - Number(a.id === activeTask?.deckId));
+  const value = studyingNow ? `${studyingNow.deckId}\u0000${studyingNow.section}` : '';
+  return (
+    <label className={`task-pill section-pill ${studyingNow ? '' : 'is-unset'}`}>
+      <span className="muted">Section</span>
+      <select
+        value={value}
+        onChange={(e) => {
+          if (!e.target.value) return setStudyingNow(null);
+          const [deckId, section] = e.target.value.split('\u0000');
+          setStudyingNow({ deckId, section });
+        }}
+        aria-label="Section you're studying"
+      >
+        <option value="">— pick what you’re studying —</option>
+        {ordered.map((d) => (
+          <optgroup key={d.id} label={d.title}>
+            {deckSections(d).map((sec) => (
+              <option key={sec || '__none'} value={`${d.id}\u0000${sec}`}>
+                {sectionLabel(sec, d)}
+                {d.studied?.includes(sec) ? ' ✓' : ''}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+    </label>
   );
 }

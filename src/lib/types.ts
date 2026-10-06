@@ -57,6 +57,8 @@ export interface Deck {
   content: string;
   autoCloze: boolean;
   createdAt: number;
+  /** Section titles the student has already studied; only these (plus the current one) are quizzed. */
+  studied?: string[];
 }
 
 export interface Card {
@@ -66,6 +68,8 @@ export interface Card {
   front: string;
   back: string;
   auto?: boolean;
+  /** The section (heading) of the notes this card came from; '' before the first heading. */
+  section: string;
 }
 
 export interface ReviewState {

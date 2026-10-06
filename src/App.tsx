@@ -43,7 +43,7 @@ function notify(title: string, body: string, enabled: boolean) {
 
 export default function App() {
   const store = useStore();
-  const { settings, tasks, setTasks, sessions, setSessions, activeTask, cards, reviews, soundParams } = store;
+  const { settings, tasks, setTasks, sessions, setSessions, activeTask, reviews, soundParams } = store;
   const [panel, setPanel] = useState<Panel | null>(null);
   const [zen, setZen] = useState(false);
   const [checkpoint, setCheckpoint] = useState(false);
@@ -85,18 +85,20 @@ export default function App() {
     }
   }, [durations, timer.started, timer.running, timer.mode, timer.remaining, setTimer]);
 
-  const preferDecks = activeTask?.deckId ? [activeTask.deckId] : [];
+  const { currentCards, earlierCards, studyingNow } = store;
 
-  const openQuiz = useCallback(
-    (n: number, title: string, subtitle?: string, deckIds?: string[]) => {
-      const pool = deckIds ? cards.filter((c) => deckIds.includes(c.deckId)) : cards;
-      const items = buildQuiz(pool, reviews, n, deckIds ?? preferDecks);
-      if (items.length) store.setQuiz({ items, title, subtitle });
-      return items.length > 0;
-    },
+  /**
+   * Checkpoint quiz: mostly the section you're on, plus one question from a section
+   * you studied earlier (any class) so older material stays fresh. Never unstudied sections.
+   */
+  const checkpointQuiz = useCallback(() => {
+    const n = 3;
+    const fromCurrent = buildQuiz(currentCards, reviews, earlierCards.length ? n - 1 : n);
+    const fromEarlier = buildQuiz(earlierCards, reviews, n - fromCurrent.length).map((i) => ({ ...i, earlier: true }));
+    const items = [...fromCurrent, ...fromEarlier];
+    if (items.length) store.setQuiz({ items, title: 'Recall checkpoint', subtitle: 'Retrieval now strengthens memory more than another read-through.' });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [cards, reviews, activeTask?.deckId],
-  );
+  }, [currentCards, earlierCards, reviews]);
 
   /* ---------- phase transitions ---------- */
 
@@ -177,10 +179,13 @@ export default function App() {
     const firstStart = !timer.started;
     setTimer((t) => ({ ...t, running: true, started: true, endAt: Date.now() + t.remaining }));
     if (firstStart && timer.mode === 'focus' && settings.warmupQuiz) {
-      const due = cards.filter((c) => isDue(reviews[c.id]) && (!activeTask?.deckId || c.deckId === activeTask.deckId));
-      if (due.length) openQuiz(Math.min(2, due.length), 'Warm-up', 'Two quick questions to prime your memory before you dive in.');
+      // Warm up on earlier sections that are due for review — never on material you haven't studied yet.
+      const due = earlierCards.filter((c) => isDue(reviews[c.id]));
+      const items = buildQuiz(due, reviews, 2).map((i) => ({ ...i, earlier: true }));
+      if (items.length) store.setQuiz({ items, title: 'Warm-up', subtitle: 'Quick review of sections you’ve already studied, before you dive in.' });
     }
-  }, [settings.notifications, settings.warmupQuiz, timer.started, timer.mode, cards, reviews, activeTask, openQuiz, setTimer]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.notifications, settings.warmupQuiz, timer.started, timer.mode, earlierCards, reviews, setTimer]);
 
   const pause = useCallback(() => {
     setTimer((t) => ({ ...t, running: false, endAt: null, remaining: t.endAt ? Math.max(0, t.endAt - Date.now()) : t.remaining }));
@@ -298,10 +303,11 @@ export default function App() {
       {checkpoint && (
         <Checkpoint
           minutes={settings.checkpointMin}
-          hasCards={cards.length > 0}
+          hasCards={currentCards.length + earlierCards.length > 0}
+          hint={store.decks.length > 0 && !studyingNow ? 'Tip: choose the section you’re studying under the timer to get questions on it.' : undefined}
           onQuiz={() => {
             setCheckpoint(false);
-            openQuiz(3, 'Recall checkpoint', 'Retrieval now strengthens memory more than another read-through.');
+            checkpointQuiz();
           }}
           onRecall={() => {
             setCheckpoint(false);
@@ -323,7 +329,7 @@ export default function App() {
             <div className="drawer-body">
               {panel === 'today' && <TodayPanel />}
               {panel === 'sound' && <SoundPanel />}
-              {panel === 'notes' && <NotesPanel onQuiz={openQuiz} />}
+              {panel === 'notes' && <NotesPanel />}
               {panel === 'stats' && <StatsPanel />}
               {panel === 'learn' && <LearnPanel />}
               {panel === 'settings' && <SettingsPanel />}

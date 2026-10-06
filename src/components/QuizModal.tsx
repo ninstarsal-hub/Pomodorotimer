@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { useStore, type QuizRequest } from '../store';
-import { checkAnswer, schedule, type Grade, type QuizItem } from '../lib/quiz';
+import { checkAnswer, deckSections, schedule, sectionLabel, type Grade, type QuizItem } from '../lib/quiz';
 
 interface Result {
   item: QuizItem;
@@ -31,7 +31,8 @@ export function QuizModal({ request, onClose }: { request: QuizRequest; onClose:
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const deckName = item ? decks.find((d) => d.id === item.card.deckId)?.title : undefined;
+  const deck = item ? decks.find((d) => d.id === item.card.deckId) : undefined;
+  const deckName = deck ? [deck.title, deck && deckSections(deck).length > 1 ? sectionLabel(item.card.section, deck) : ''].filter(Boolean).join(' · ') : undefined;
   const score = results.filter((r) => r.correct).length;
 
   return (
@@ -43,7 +44,7 @@ export function QuizModal({ request, onClose }: { request: QuizRequest; onClose:
             {!done && (
               <div className="muted small">
                 Question {i + 1} of {request.items.length}
-                {deckName ? ` · ${deckName}` : ''}
+                {deckName ? ` · ${item.earlier ? 'Review: ' : ''}${deckName}` : ''}
               </div>
             )}
           </div>

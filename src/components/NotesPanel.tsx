@@ -1,36 +1,42 @@
 import { useMemo, useRef, useState } from 'react';
 import { Brain, ChevronDown, FileUp, Pencil, Plus, Shuffle, Trash2 } from 'lucide-react';
 import { useStore } from '../store';
-import { isDue } from '../lib/quiz';
+import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
 import { uid } from '../lib/storage';
 import { SAMPLE_NOTES } from '../lib/content';
 import { ACCEPTED_FILES, ImportError, extractText, titleFromFile } from '../lib/importers';
 import type { Deck } from '../lib/types';
 
-interface Props {
-  onQuiz: (n: number, title: string, subtitle?: string, deckIds?: string[]) => boolean;
-}
-
-export function NotesPanel({ onQuiz }: Props) {
-  const { decks, setDecks, cards, reviews, setTasks } = useStore();
+export function NotesPanel() {
+  const { decks, setDecks, cards, unlocked, reviews, setTasks, setQuiz } = useStore();
   const [editing, setEditing] = useState<string | null>(null);
   const [importing, setImporting] = useState<string | null>(null);
   const [importError, setImportError] = useState('');
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // "Due" and quizzes only count sections you've studied (or are studying now).
   const stats = useMemo(() => {
-    const m: Record<string, { total: number; due: number; mastered: number }> = {};
+    const m: Record<string, { total: number; unlocked: number; due: number; mastered: number }> = {};
     for (const c of cards) {
-      const s = (m[c.deckId] ??= { total: 0, due: 0, mastered: 0 });
+      const s = (m[c.deckId] ??= { total: 0, unlocked: 0, due: 0, mastered: 0 });
       s.total++;
-      if (isDue(reviews[c.id])) s.due++;
       if ((reviews[c.id]?.box ?? 0) >= 3) s.mastered++;
     }
+    for (const c of unlocked) {
+      const s = m[c.deckId];
+      s.unlocked++;
+      if (isDue(reviews[c.id])) s.due++;
+    }
     return m;
-  }, [cards, reviews]);
+  }, [cards, unlocked, reviews]);
 
   const totalDue = Object.values(stats).reduce((a, s) => a + s.due, 0);
+
+  const quiz = (pool: typeof cards, n: number, title: string, subtitle?: string) => {
+    const items = buildQuiz(pool, reviews, n);
+    if (items.length) setQuiz({ items, title, subtitle });
+  };
 
   const create = (content = '', title = 'Untitled notes', subject = '', open = true) => {
     const d: Deck = { id: uid(), title, subject, content, autoCloze: true, createdAt: Date.now() };
@@ -83,7 +89,7 @@ export function NotesPanel({ onQuiz }: Props) {
     >
       <p className="muted small">
         Upload your notes, slides or study guide (PDF, Word, PowerPoint or text), or paste them in. Stillpoint turns them into review questions, quizzes you at checkpoints, and brings each question back
-        just before you’d forget it. Link a set of notes to a task in Today so the checkpoint quizzes match what you’re working on.
+        just before you’d forget it. Quizzes only cover sections you’ve checked off as studied, plus the one you pick under the timer.
       </p>
 
       <div className="row wrap">
@@ -104,8 +110,13 @@ export function NotesPanel({ onQuiz }: Props) {
             e.target.value = '';
           }}
         />
-        {cards.length > 0 && (
-          <button className="btn" onClick={() => onQuiz(Math.min(10, Math.max(5, totalDue)), 'Review session', totalDue ? `${totalDue} question${totalDue === 1 ? '' : 's'} due across all notes.` : 'Nothing due — extra practice.')}>
+        {unlocked.length > 0 && (
+          <button
+            className="btn"
+            onClick={() =>
+              quiz(unlocked, Math.min(10, Math.max(5, totalDue)), 'Review session', totalDue ? `${totalDue} question${totalDue === 1 ? '' : 's'} due from sections you’ve studied.` : 'Nothing due — extra practice on sections you’ve studied.')
+            }
+          >
             <Shuffle size={16} /> Review {totalDue ? `${totalDue} due` : 'all'}
           </button>
         )}
@@ -124,7 +135,9 @@ export function NotesPanel({ onQuiz }: Props) {
       )}
 
       {decks.map((d) => {
-        const s = stats[d.id] ?? { total: 0, due: 0, mastered: 0 };
+        const s = stats[d.id] ?? { total: 0, unlocked: 0, due: 0, mastered: 0 };
+        const sections = deckSections(d);
+        const studiedCount = sections.filter((x) => d.studied?.includes(x)).length;
         const open = editing === d.id;
         return (
           <div key={d.id} className={`card deck ${open ? 'is-open' : ''}`}>
@@ -134,11 +147,17 @@ export function NotesPanel({ onQuiz }: Props) {
                 <span className="muted small">
                   {d.subject && <span className="tag">{d.subject}</span>}
 {' '}
+                  {sections.length > 1 && `${studiedCount}/${sections.length} sections studied · `}
                   {s.total} question{s.total === 1 ? '' : 's'} · {s.due} due · {s.mastered} mastered
                 </span>
               </button>
               <div className="row">
-                <button className="btn small" disabled={!s.total} onClick={() => onQuiz(5, `Quiz · ${d.title}`, undefined, [d.id])}>
+                <button
+                  className="btn small"
+                  disabled={!s.unlocked}
+                  title={s.unlocked ? 'Quiz on the sections you’ve studied' : 'Mark a section as studied first'}
+                  onClick={() => quiz(unlocked.filter((c) => c.deckId === d.id), 5, `Quiz · ${d.title}`, 'Only sections you’ve studied.')}
+                >
                   <Brain size={14} /> Quiz
                 </button>
                 <button className="icon-btn small" onClick={() => setEditing(open ? null : d.id)} aria-label="Edit notes">
@@ -146,7 +165,16 @@ export function NotesPanel({ onQuiz }: Props) {
                 </button>
               </div>
             </div>
-            {open && <DeckEditor deck={d} onRemove={() => remove(d.id)} />}
+            {open ? (
+              <DeckEditor deck={d} onRemove={() => remove(d.id)} />
+            ) : (
+              !s.unlocked &&
+              s.total > 0 && (
+                <button className="link-btn small" onClick={() => setEditing(d.id)}>
+                  Mark what you’ve studied to start quizzing →
+                </button>
+              )
+            )}
             {s.total > 0 && (
               <div className="mastery" title={`${s.mastered} of ${s.total} mastered`}>
                 <span style={{ width: `${(s.mastered / s.total) * 100}%` }} />
@@ -167,6 +195,7 @@ function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
 
   return (
     <div className="deck-editor stack-sm">
+      <SectionList deck={deck} />
       <div className="row">
         <input className="grow" value={deck.title} onChange={(e) => update({ title: e.target.value })} aria-label="Title" placeholder="Title" />
         <input value={deck.subject} onChange={(e) => update({ subject: e.target.value })} aria-label="Subject" placeholder="Subject" style={{ width: 120 }} />
@@ -225,6 +254,48 @@ function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+/** Checklist of a deck's sections: what you've studied, and which one you're on now. */
+function SectionList({ deck }: { deck: Deck }) {
+  const { cards, studyingNow, setStudyingNow, setStudied } = useStore();
+  const sections = deckSections(deck);
+  const counts = new Map<string, number>();
+  for (const c of cards) if (c.deckId === deck.id) counts.set(c.section, (counts.get(c.section) ?? 0) + 1);
+  const single = sections.length === 1;
+
+  return (
+    <div className="sections">
+      <div className="row between">
+        <span className="field-label">{single ? 'Quizzing' : 'Sections'}</span>
+        {!single && <span className="muted small">Only checked sections are quizzed</span>}
+      </div>
+      <ul>
+        {sections.map((sec) => {
+          const studied = deck.studied?.includes(sec) ?? false;
+          const now = studyingNow?.deckId === deck.id && studyingNow.section === sec;
+          const n = counts.get(sec) ?? 0;
+          return (
+            <li key={sec || '__none'} className={now ? 'is-now' : ''}>
+              <label className="section-check">
+                <input type="checkbox" className="box" checked={studied || now} disabled={now} onChange={(e) => setStudied(deck.id, sec, e.target.checked)} />
+                <span className="section-name">{single && !sec ? 'I’ve studied these notes' : sectionLabel(sec, deck)}</span>
+              </label>
+              <span className="muted small">{n}q</span>
+              {now ? (
+                <span className="tag now-tag">Studying now</span>
+              ) : (
+                <button className="btn small ghost" onClick={() => setStudyingNow({ deckId: deck.id, section: sec })} title="Set as the section you're studying now">
+                  Study now
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {single && <p className="muted small">Tip: split notes into sections with headings like “# Session 3” or a line like “Lecture 5: Genetics”.</p>}
     </div>
   );
 }

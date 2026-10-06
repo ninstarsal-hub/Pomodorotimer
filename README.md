@@ -26,6 +26,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 **Learn**
 - Upload notes, slides or study guides: PDF, Word (`.docx`), PowerPoint (`.pptx`, including speaker notes), `.txt`, `.md`, `.html` or `.rtf`. You can also paste text or drag files in. Files are read in your browser
 - Stillpoint turns notes into flashcards, fill-in-the-blanks and "explain it" prompts, and skips instructions and logistics like "Read chapter 4" or "Due Friday". Everything runs in your browser, so it's free
+- **Sections:** notes are split into sections by headings (`# Session 3`, `## Topic`) or lines like `Session 3: Cell respiration` / `Lecture 5 - Genetics`. Pick the section you're studying under the timer, and check off sections you've already covered. Quizzes only use those: checkpoints ask mostly about the current section plus one review question from an earlier studied section (in any class), and warm-ups review earlier sections that are due
 - At a set point in each focus block (15 minutes by default) a **recall checkpoint** appears. You can take a 3-question quiz or write down everything you remember
 - A short warm-up quiz when a block starts (pre-testing)
 - Spaced repetition: cards you get wrong come back soon, and cards you know come back further apart

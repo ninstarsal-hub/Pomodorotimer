@@ -96,7 +96,7 @@ async function fromPptx(file: File) {
       const notes = [...nx.getElementsByTagName('a:t')].map((t) => t.textContent ?? '').join(' ').trim();
       if (notes && !/^\d+$/.test(notes)) paras.push(notes);
     }
-    if (paras.length) out.push(`# Slide ${slideNum(path)}: ${paras[0]}\n${paras.slice(1).join('\n')}`);
+    if (paras.length) out.push(`### ${paras[0]}\n${paras.slice(1).join('\n')}`);
   }
   return out.join('\n\n');
 }

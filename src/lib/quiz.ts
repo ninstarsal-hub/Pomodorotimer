@@ -46,7 +46,7 @@ const LOGISTICS =
 /** A heading worth an "explain it" prompt, or null for generic ones like "Unit 3 Review". */
 function topicFromHeading(raw: string): string | null {
   const t = raw
-    .replace(/^(?:slide|unit|week|lecture|lesson|module|chapter|ch\.?|part|section|day|topic)\s*\d+[a-z]?\s*[:.\-–—]?\s*/i, '')
+    .replace(/^(?:slide|session|class|unit|week|lecture|lesson|module|chapter|ch\.?|part|section|day|topic)\s*#?\s*\d+[a-z]?\s*[:.\-–—)]?\s*/i, '')
     .replace(/\*\*|==/g, '')
     .trim();
   if (!t || t.length < 3 || isInstruction(t)) return null;
@@ -88,6 +88,48 @@ function blank(sentence: string, target: string) {
   return sentence.slice(0, idx) + '_____' + sentence.slice(idx + target.length);
 }
 
+/* ---------- sections ---------- */
+
+/** A line like "Session 3: Cell respiration", "Lecture 5", "Unit 2 - Genetics". */
+const SECTION_LINE = /^(?:session|lecture|lesson|chapter|ch\.?|unit|week|module|part|class|day|topic)\s*#?\s*\d+[a-z]?(?:\s*[:.\-–—)]|\s*$|\s+\p{Lu})/iu;
+
+/** Label used for notes that come before the first section heading (or decks with no headings). */
+export const NO_SECTION = '';
+
+function stripMarks(t: string) {
+  return t.replace(/\*\*|==/g, '').replace(/[\s:\-–—]+$/, '').trim();
+}
+
+/**
+ * If this line starts a new section, return its title.
+ * Sections are "#"/"##" headings or session-style lines; "###" and deeper are subtopics.
+ */
+function sectionStart(raw: string): { title: string; section: boolean } | null {
+  const h = raw.match(/^\s*(#{1,6})\s+(.+)$/);
+  if (h) return { title: h[2].trim(), section: h[1].length <= 2 || SECTION_LINE.test(h[2].trim()) };
+  const line = clean(raw);
+  if (line && line.split(/\s+/).length <= 12 && SECTION_LINE.test(line)) return { title: line, section: true };
+  return null;
+}
+
+/** The deck's sections, in the order they appear. */
+export function deckSections(deck: Deck): string[] {
+  const out: string[] = [];
+  let sawContentBeforeFirst = false;
+  for (const raw of deck.content.split(/\r?\n/)) {
+    const start = sectionStart(raw);
+    if (start?.section) {
+      const title = stripMarks(start.title);
+      if (title && !out.includes(title)) out.push(title);
+    } else if (!out.length && clean(raw)) sawContentBeforeFirst = true;
+  }
+  return sawContentBeforeFirst || !out.length ? [NO_SECTION, ...out] : out;
+}
+
+export function sectionLabel(section: string, deck: Deck) {
+  return section || (deckSections(deck).length > 1 ? 'Intro (before the first heading)' : 'All notes');
+}
+
 export function parseCards(deck: Deck): Card[] {
   const out: Card[] = [];
   const seen = new Set<string>();
@@ -98,10 +140,11 @@ export function parseCards(deck: Deck): Card[] {
     const id = deck.id + ':' + hash(kind + front);
     if (seen.has(id)) return;
     seen.add(id);
-    out.push({ id, deckId: deck.id, kind, front, back, auto });
+    out.push({ id, deckId: deck.id, kind, front, back, auto, section });
   };
 
   const lines = deck.content.split(/\r?\n/);
+  let section = NO_SECTION;
   let heading: string | null = null;
   let headingBody: string[] = [];
   const flushHeading = () => {
@@ -114,15 +157,16 @@ export function parseCards(deck: Deck): Card[] {
 
   for (let i = 0; i < lines.length; i++) {
     const raw = lines[i];
-    const h = raw.match(/^\s*#{1,6}\s+(.+)$/);
-    if (h) {
+    const start = sectionStart(raw);
+    if (start) {
       flushHeading();
-      heading = topicFromHeading(h[1]);
+      if (start.section) section = stripMarks(start.title);
+      heading = topicFromHeading(start.title);
       continue;
     }
     const line = clean(raw);
     if (!line || isInstruction(line)) continue;
-    if (heading) headingBody.push(line.replace(/\*\*|==/g, ''));
+    if (heading) headingBody.push(line.replace(/\*\*|==/g, '').replace(/\s*::\s*/g, ' — '));
 
     // Term :: definition
     if (line.includes('::')) {
@@ -212,6 +256,8 @@ export function isDue(r: ReviewState | undefined, now = Date.now()) {
 
 export interface QuizItem {
   card: Card;
+  /** From a section studied earlier, rather than the one you're on now. */
+  earlier?: boolean;
   type: 'flip' | 'type' | 'choice';
   options?: string[];
 }

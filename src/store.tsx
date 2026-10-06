@@ -24,6 +24,11 @@ export const DEFAULT_SETTINGS: Settings = {
   blur: 0,
 };
 
+export interface StudyPointer {
+  deckId: string;
+  section: string;
+}
+
 export interface MediaLink {
   id: string;
   name: string;
@@ -56,6 +61,34 @@ function useStoreValue() {
   const [uploadVersion, setUploadVersion] = useState(0);
 
   const cards = useMemo<Card[]>(() => decks.flatMap(parseCards), [decks]);
+
+  /* ---------- sections: what you're studying now, and what you've already covered ---------- */
+  const [studyingNow, setStudyingNowRaw] = usePersistentState<StudyPointer | null>('studyingNow', null);
+  // Ignore a pointer to notes or a section that no longer exists.
+  const current = studyingNow && decks.some((d) => d.id === studyingNow.deckId) ? studyingNow : null;
+
+  const setStudyingNow = (ptr: StudyPointer | null) => {
+    setStudyingNowRaw(ptr);
+    // Whatever you're studying now counts as studied from here on.
+    if (ptr) setDecks((ds) => ds.map((d) => (d.id === ptr.deckId && !(d.studied ?? []).includes(ptr.section) ? { ...d, studied: [...(d.studied ?? []), ptr.section] } : d)));
+  };
+  const setStudied = (deckId: string, section: string, studied: boolean) =>
+    setDecks((ds) =>
+      ds.map((d) => {
+        if (d.id !== deckId) return d;
+        const list = (d.studied ?? []).filter((x) => x !== section);
+        return { ...d, studied: studied ? [...list, section] : list };
+      }),
+    );
+
+  const pools = useMemo(() => {
+    const studied = new Map(decks.map((d) => [d.id, new Set(d.studied ?? [])]));
+    const isCurrent = (c: Card) => !!current && c.deckId === current.deckId && c.section === current.section;
+    const currentCards = cards.filter(isCurrent);
+    // Earlier material: sections you've marked studied, in any class, excluding the one you're on.
+    const earlierCards = cards.filter((c) => !isCurrent(c) && studied.get(c.deckId)?.has(c.section));
+    return { currentCards, earlierCards, unlocked: [...currentCards, ...earlierCards] };
+  }, [cards, decks, current]);
 
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null;
   const today = dayKey();
@@ -101,6 +134,10 @@ function useStoreValue() {
     setUploadVersion,
     cards,
     today,
+    studyingNow: current,
+    setStudyingNow,
+    setStudied,
+    ...pools,
   };
 }
 

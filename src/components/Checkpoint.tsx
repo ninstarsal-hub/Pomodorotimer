@@ -4,12 +4,13 @@ import { Brain, X } from 'lucide-react';
 interface Props {
   minutes: number;
   hasCards: boolean;
+  hint?: string;
   onQuiz: () => void;
   onRecall: () => void;
   onDismiss: () => void;
 }
 
-export function Checkpoint({ minutes, hasCards, onQuiz, onRecall, onDismiss }: Props) {
+export function Checkpoint({ minutes, hasCards, hint, onQuiz, onRecall, onDismiss }: Props) {
   // The parent re-renders every tick, so hold the latest callback in a ref.
   const dismissRef = useRef(onDismiss);
   dismissRef.current = onDismiss;
@@ -24,6 +25,7 @@ export function Checkpoint({ minutes, hasCards, onQuiz, onRecall, onDismiss }: P
       <div className="toast-body">
         <strong>{minutes} minutes in — check your understanding</strong>
         <span className="muted small">60 seconds of retrieval now beats 10 more minutes of re-reading.</span>
+        {hint && <span className="muted small">{hint}</span>}
         <div className="row wrap">
           {hasCards && (
             <button className="btn primary small" onClick={onQuiz}>
