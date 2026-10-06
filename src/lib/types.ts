@@ -18,6 +18,8 @@ export interface Settings {
   background: BackgroundSetting;
   dim: number;
   blur: number;
+  aiAccessCode: string;
+  aiAutoGenerate: boolean;
 }
 
 export interface BackgroundSetting {
@@ -57,6 +59,13 @@ export interface Deck {
   content: string;
   autoCloze: boolean;
   createdAt: number;
+  /** Questions written by the AI from this deck's notes. */
+  aiCards?: Card[];
+  /** Fingerprint of the notes the AI questions were generated from. */
+  aiSource?: string;
+  aiGeneratedAt?: number;
+  /** Quiz from the AI questions (true) or the built-in parser (false). */
+  useAi?: boolean;
 }
 
 export interface Card {
@@ -66,6 +75,10 @@ export interface Card {
   front: string;
   back: string;
   auto?: boolean;
+  ai?: boolean;
+  /** For AI cards: false when the question was written from general knowledge of a topic the notes only name. */
+  fromNotes?: boolean;
+  topic?: string;
 }
 
 export interface ReviewState {

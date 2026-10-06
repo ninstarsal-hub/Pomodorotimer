@@ -1,4 +1,5 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { contentHash, generateAiCards } from './lib/ai';
 import { usePersistentState, dayKey } from './lib/storage';
 import { parseCards, type QuizItem } from './lib/quiz';
 import type { SoundParams } from './lib/audio';
@@ -22,7 +23,14 @@ export const DEFAULT_SETTINGS: Settings = {
   background: { kind: 'preset', preset: 'aurora', url: '' },
   dim: 0.55,
   blur: 0,
+  aiAccessCode: '',
+  aiAutoGenerate: true,
 };
+
+/** The cards a deck quizzes from: AI-written questions when available and enabled, else the built-in parser. */
+export function deckCards(deck: Deck): Card[] {
+  return deck.aiCards?.length && deck.useAi !== false ? deck.aiCards : parseCards(deck);
+}
 
 export interface MediaLink {
   id: string;
@@ -55,7 +63,35 @@ function useStoreValue() {
   const [quiz, setQuiz] = useState<QuizRequest | null>(null);
   const [uploadVersion, setUploadVersion] = useState(0);
 
-  const cards = useMemo<Card[]>(() => decks.flatMap(parseCards), [decks]);
+  const cards = useMemo<Card[]>(() => decks.flatMap(deckCards), [decks]);
+
+  // AI question generation lives here (not in the panel) so it finishes even if the panel closes.
+  const [aiBusy, setAiBusy] = useState<Record<string, boolean>>({});
+  const [aiErrors, setAiErrors] = useState<Record<string, string>>({});
+  const decksRef = useRef(decks);
+  decksRef.current = decks;
+  const accessRef = useRef(settings.aiAccessCode);
+  accessRef.current = settings.aiAccessCode;
+  const generateAi = useCallback(
+    async (deckId: string, fallback?: Deck) => {
+      const deck = decksRef.current.find((d) => d.id === deckId) ?? fallback;
+      if (!deck || !deck.content.trim()) return;
+      setAiBusy((b) => ({ ...b, [deckId]: true }));
+      setAiErrors(({ [deckId]: _, ...rest }) => rest);
+      try {
+        const aiCards = await generateAiCards(deck, accessRef.current);
+        setDecks((ds) =>
+          ds.map((d) => (d.id === deckId ? { ...d, aiCards, aiSource: contentHash(deck.content), aiGeneratedAt: Date.now(), useAi: true } : d)),
+        );
+        if (!aiCards.length) setAiErrors((e) => ({ ...e, [deckId]: 'The AI found nothing testable in these notes.' }));
+      } catch (err) {
+        setAiErrors((e) => ({ ...e, [deckId]: err instanceof Error ? err.message : 'AI request failed.' }));
+      } finally {
+        setAiBusy(({ [deckId]: _, ...rest }) => rest);
+      }
+    },
+    [setDecks],
+  );
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null;
   const today = dayKey();
 
@@ -100,6 +136,9 @@ function useStoreValue() {
     setUploadVersion,
     cards,
     today,
+    aiBusy,
+    aiErrors,
+    generateAi,
   };
 }
 

@@ -19,7 +19,7 @@ const STOP = new Set(
   ),
 );
 
-function hash(s: string) {
+export function hash(s: string) {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -32,6 +32,34 @@ function clean(line: string) {
   return line
     .replace(/^\s*(?:[-*•‣▪]|\d+[.)])\s+/, '')
     .trim();
+}
+
+/**
+ * Lines that are instructions or logistics ("Read chapter 4", "Complete the
+ * worksheet", "Due Friday") rather than content. Quizzing on these teaches nothing.
+ */
+const INSTRUCTION_START =
+  /^(?:please\s+)?(?:read|re-?read|review|complete|finish|do|study|watch|look\s+over|go\s+over|skim|practice|submit|turn\s+in|hand\s+in|bring|print|answer|attempt|refer\s+to|see|check|make\s+sure|remember\s+to|don'?t\s+forget|be\s+sure|prepare|work\s+on|write|memori[sz]e|know|understand|be\s+able\s+to|reminder|note:|todo|to-do)\b/i;
+const LOGISTICS =
+  /\b(?:due|deadline|quiz\s+on|test\s+on|exam\s+on|homework|hw\b|worksheet|assignment|syllabus|office\s+hours|pp?\.\s*\d|pages?\s+\d|ch(?:apter|\.)?\s*\d+|section\s+\d|textbook|canvas|google\s+classroom|https?:\/\/)/i;
+
+/** A heading worth an "explain it" prompt, or null for generic ones like "Unit 3 Review". */
+function topicFromHeading(raw: string): string | null {
+  const t = raw
+    .replace(/^(?:slide|unit|week|lecture|lesson|module|chapter|ch\.?|part|section|day|topic)\s*\d+[a-z]?\s*[:.\-–—]?\s*/i, '')
+    .replace(/\*\*|==/g, '')
+    .trim();
+  if (!t || t.length < 3 || isInstruction(t)) return null;
+  if (/\b(?:review|study\s+guide|notes|exam|test|quiz|homework|agenda|objectives|outline|summary|introduction|overview|questions)\b/i.test(t) && t.split(/\s+/).length <= 4) return null;
+  return t;
+}
+
+export function isInstruction(line: string) {
+  const l = line.trim();
+  if (INSTRUCTION_START.test(l)) return true;
+  // Short lines that are mostly references/logistics ("Chapter 5, pp. 120-135")
+  if (LOGISTICS.test(l) && words(l).length <= 14) return true;
+  return false;
 }
 
 function words(s: string) {
@@ -89,11 +117,11 @@ export function parseCards(deck: Deck): Card[] {
     const h = raw.match(/^\s*#{1,6}\s+(.+)$/);
     if (h) {
       flushHeading();
-      heading = h[1].trim();
+      heading = topicFromHeading(h[1]);
       continue;
     }
     const line = clean(raw);
-    if (!line) continue;
+    if (!line || isInstruction(line)) continue;
     if (heading) headingBody.push(line.replace(/\*\*|==/g, ''));
 
     // Term :: definition

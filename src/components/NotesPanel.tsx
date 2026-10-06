@@ -1,9 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
-import { Brain, ChevronDown, Pencil, Plus, Shuffle, Trash2, Upload } from 'lucide-react';
-import { useStore } from '../store';
-import { isDue } from '../lib/quiz';
+import { Brain, ChevronDown, FileUp, Pencil, Plus, Shuffle, Sparkles, Trash2 } from 'lucide-react';
+import { useStore, deckCards } from '../store';
+import { isDue, parseCards } from '../lib/quiz';
 import { uid } from '../lib/storage';
 import { SAMPLE_NOTES } from '../lib/content';
+import { ACCEPTED_FILES, ImportError, extractText, titleFromFile } from '../lib/importers';
+import { contentHash } from '../lib/ai';
 import type { Deck } from '../lib/types';
 
 interface Props {
@@ -11,8 +13,11 @@ interface Props {
 }
 
 export function NotesPanel({ onQuiz }: Props) {
-  const { decks, setDecks, cards, reviews, setTasks } = useStore();
+  const { decks, setDecks, cards, reviews, setTasks, settings, generateAi } = useStore();
   const [editing, setEditing] = useState<string | null>(null);
+  const [importing, setImporting] = useState<string | null>(null);
+  const [importError, setImportError] = useState('');
+  const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const stats = useMemo(() => {
@@ -28,55 +33,88 @@ export function NotesPanel({ onQuiz }: Props) {
 
   const totalDue = Object.values(stats).reduce((a, s) => a + s.due, 0);
 
-  const create = (content = '', title = 'Untitled notes', subject = '') => {
+  const create = (content = '', title = 'Untitled notes', subject = '', open = true) => {
     const d: Deck = { id: uid(), title, subject, content, autoCloze: true, createdAt: Date.now() };
     setDecks((ds) => [d, ...ds]);
-    setEditing(d.id);
+    if (open) setEditing(d.id);
+    return d;
   };
 
-  const importFile = async (file: File) => {
-    const text = await file.text();
-    create(text, file.name.replace(/\.(txt|md|markdown)$/i, ''));
+  const importFiles = async (files: FileList | File[]) => {
+    setImportError('');
+    const errors: string[] = [];
+    for (const file of Array.from(files)) {
+      setImporting(file.name);
+      try {
+        const text = await extractText(file);
+        if (!text) throw new ImportError('No text found in this file.');
+        const deck = create(text, titleFromFile(file), '', false);
+        if (settings.aiAutoGenerate) void generateAi(deck.id, deck);
+      } catch (e) {
+        errors.push(`${file.name}: ${e instanceof ImportError ? e.message : 'couldn’t read this file.'}`);
+      }
+    }
+    setImporting(null);
+    setImportError(errors.join('\n'));
   };
 
   const remove = (id: string) => {
-    if (!confirm('Delete these notes and their cards?')) return;
+    if (!confirm('Delete these notes and their questions?')) return;
     setDecks((ds) => ds.filter((d) => d.id !== id));
     setTasks((ts) => ts.map((t) => (t.deckId === id ? { ...t, deckId: undefined } : t)));
     if (editing === id) setEditing(null);
   };
 
   return (
-    <div className="stack">
+    <div
+      className={`stack drop-target ${dragging ? 'is-dragging' : ''}`}
+      onDragOver={(e) => {
+        if (e.dataTransfer.types.includes('Files')) {
+          e.preventDefault();
+          setDragging(true);
+        }
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragging(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        if (e.dataTransfer.files.length) void importFiles(e.dataTransfer.files);
+      }}
+    >
       <p className="muted small">
-        Paste lecture notes or a study guide. Stillpoint turns them into recall questions, then quizzes you at checkpoints and spaces reviews so you revisit things right before you’d forget them. Link notes to a task in Today so
-        checkpoint quizzes match what you’re studying.
+        Upload your notes, slides or study guide (PDF, Word, PowerPoint or text), or paste them in. Stillpoint writes short review questions from them, quizzes you at checkpoints, and brings each question back
+        just before you’d forget it. Link a set of notes to a task in Today so the checkpoint quizzes match what you’re working on.
       </p>
 
       <div className="row wrap">
-        <button className="btn primary" onClick={() => create()}>
-          <Plus size={16} /> New notes
+        <button className="btn primary" onClick={() => fileRef.current?.click()} disabled={!!importing}>
+          <FileUp size={16} /> {importing ? 'Importing…' : 'Upload files'}
         </button>
-        <button className="btn" onClick={() => fileRef.current?.click()}>
-          <Upload size={16} /> Import .txt / .md
+        <button className="btn" onClick={() => create()}>
+          <Plus size={16} /> Paste notes
         </button>
         <input
           ref={fileRef}
           type="file"
-          accept=".txt,.md,.markdown,text/plain,text/markdown"
+          multiple
+          accept={ACCEPTED_FILES}
           hidden
           onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void importFile(f);
+            if (e.target.files?.length) void importFiles(e.target.files);
             e.target.value = '';
           }}
         />
         {cards.length > 0 && (
-          <button className="btn" onClick={() => onQuiz(Math.min(10, Math.max(5, totalDue)), 'Review session', totalDue ? `${totalDue} card${totalDue === 1 ? '' : 's'} due across all notes.` : 'Nothing due — extra practice.')}>
+          <button className="btn" onClick={() => onQuiz(Math.min(10, Math.max(5, totalDue)), 'Review session', totalDue ? `${totalDue} question${totalDue === 1 ? '' : 's'} due across all notes.` : 'Nothing due — extra practice.')}>
             <Shuffle size={16} /> Review {totalDue ? `${totalDue} due` : 'all'}
           </button>
         )}
       </div>
+      {importing && <p className="muted small">Reading {importing}…</p>}
+      {importError && <p className="error small pre">{importError}</p>}
+      <p className="muted small drop-hint">Tip: you can also drag files onto this panel.</p>
 
       {decks.length === 0 && (
         <div className="card empty-card">
@@ -96,7 +134,13 @@ export function NotesPanel({ onQuiz }: Props) {
               <button className="deck-head" onClick={() => setEditing(open ? null : d.id)}>
                 <strong>{d.title}</strong>
                 <span className="muted small">
-                  {d.subject && <span className="tag">{d.subject}</span>} {s.total} cards · {s.due} due · {s.mastered} mastered
+                  {d.subject && <span className="tag">{d.subject}</span>}
+                  {d.aiCards?.length && d.useAi !== false ? (
+                    <span className="tag ai-tag">
+                      <Sparkles size={10} /> AI
+                    </span>
+                  ) : null}{' '}
+                  {s.total} questions · {s.due} due · {s.mastered} mastered
                 </span>
               </button>
               <div className="row">
@@ -108,6 +152,7 @@ export function NotesPanel({ onQuiz }: Props) {
                 </button>
               </div>
             </div>
+            <AiStatus deck={d} />
             {open && <DeckEditor deck={d} onRemove={() => remove(d.id)} />}
             {s.total > 0 && (
               <div className="mastery" title={`${s.mastered} of ${s.total} mastered`}>
@@ -121,11 +166,45 @@ export function NotesPanel({ onQuiz }: Props) {
   );
 }
 
+/** One line under each deck: generate / regenerate AI questions and show progress or errors. */
+function AiStatus({ deck }: { deck: Deck }) {
+  const { aiBusy, aiErrors, generateAi } = useStore();
+  const busy = aiBusy[deck.id];
+  const error = aiErrors[deck.id];
+  const has = !!deck.aiCards?.length;
+  const stale = has && deck.aiSource !== contentHash(deck.content);
+
+  if (busy) {
+    return (
+      <div className="ai-row is-busy">
+        <Sparkles size={14} className="spin-slow" /> Reading your notes and writing questions… this can take up to a minute.
+      </div>
+    );
+  }
+  return (
+    <>
+      {error && <p className="error small">{error}</p>}
+      {!has ? (
+        <button className="ai-row" onClick={() => void generateAi(deck.id)} disabled={!deck.content.trim()}>
+          <Sparkles size={14} /> Write smarter questions with AI
+        </button>
+      ) : stale ? (
+        <button className="ai-row" onClick={() => void generateAi(deck.id)}>
+          <Sparkles size={14} /> Notes changed — regenerate AI questions
+        </button>
+      ) : null}
+    </>
+  );
+}
+
 function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
-  const { setDecks, cards } = useStore();
-  const deckCards = cards.filter((c) => c.deckId === deck.id);
+  const { setDecks, generateAi, aiBusy } = useStore();
+  const shown = deckCards(deck);
   const [showCards, setShowCards] = useState(false);
   const update = (patch: Partial<Deck>) => setDecks((ds) => ds.map((d) => (d.id === deck.id ? { ...d, ...patch } : d)));
+  const hasAi = !!deck.aiCards?.length;
+  const usingAi = hasAi && deck.useAi !== false;
+  const builtInCount = useMemo(() => (hasAi ? parseCards(deck).length : 0), [hasAi, deck]);
 
   return (
     <div className="deck-editor stack-sm">
@@ -134,46 +213,92 @@ function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
         <input value={deck.subject} onChange={(e) => update({ subject: e.target.value })} aria-label="Subject" placeholder="Subject" style={{ width: 120 }} />
       </div>
       <textarea value={deck.content} onChange={(e) => update({ content: e.target.value })} rows={12} placeholder="Paste or write notes here…" aria-label="Notes" spellCheck />
-      <details className="format-help">
-        <summary>Formatting tips for better questions</summary>
-        <ul>
-          <li>
-            <code>Term :: definition</code> → flashcard
-          </li>
-          <li>
-            <code>Q: …</code> then <code>A: …</code> on the next line → question
-          </li>
-          <li>A line ending in <code>?</code> with the answer on the next line → question</li>
-          <li>
-            <code>Term - definition</code> or <code>Term: definition</code> → flashcard
-          </li>
-          <li>
-            Wrap key words in <code>**bold**</code> or <code>==highlight==</code> → fill-in-the-blank
-          </li>
-          <li>
-            <code># Heading</code> → “explain it in your own words” prompt
-          </li>
-        </ul>
-      </details>
-      <label className="toggle-row">
-        <input type="checkbox" checked={deck.autoCloze} onChange={(e) => update({ autoCloze: e.target.checked })} />
-        <span>Also auto-generate fill-in-the-blanks from plain sentences</span>
-      </label>
-      <div className="row between">
+
+      {hasAi && (
+        <div className="segmented" role="radiogroup" aria-label="Question source">
+          <button role="radio" aria-checked={usingAi} className={usingAi ? 'is-active' : ''} onClick={() => update({ useAi: true })}>
+            <Sparkles size={12} /> AI questions · {deck.aiCards!.length}
+          </button>
+          <button role="radio" aria-checked={!usingAi} className={!usingAi ? 'is-active' : ''} onClick={() => update({ useAi: false })}>
+            Built-in · {builtInCount}
+          </button>
+        </div>
+      )}
+
+      {!usingAi && (
+        <>
+          <details className="format-help">
+            <summary>Formatting tips for the built-in questions</summary>
+            <ul>
+              <li>
+                <code>Term :: definition</code> → flashcard
+              </li>
+              <li>
+                <code>Q: …</code> then <code>A: …</code> on the next line → question
+              </li>
+              <li>A line ending in <code>?</code> with the answer on the next line → question</li>
+              <li>
+                <code>Term - definition</code> or <code>Term: definition</code> → flashcard
+              </li>
+              <li>
+                Wrap key words in <code>**bold**</code> or <code>==highlight==</code> → fill-in-the-blank
+              </li>
+              <li>
+                <code># Heading</code> → “explain it in your own words” prompt
+              </li>
+              <li>Instructions like “Read chapter 4” or “Due Friday” are skipped automatically.</li>
+            </ul>
+          </details>
+          <label className="toggle-row">
+            <input type="checkbox" checked={deck.autoCloze} onChange={(e) => update({ autoCloze: e.target.checked })} />
+            <span>Also auto-generate fill-in-the-blanks from plain sentences</span>
+          </label>
+        </>
+      )}
+
+      <div className="row between wrap">
         <button className="link-btn" onClick={() => setShowCards((s) => !s)}>
-          {showCards ? 'Hide' : 'Preview'} {deckCards.length} generated cards
+          {showCards ? 'Hide' : 'Preview'} {shown.length} questions
         </button>
-        <button className="btn small danger" onClick={onRemove}>
-          <Trash2 size={14} /> Delete
-        </button>
+        <div className="row">
+          {hasAi && (
+            <button className="btn small" onClick={() => void generateAi(deck.id)} disabled={aiBusy[deck.id]}>
+              <Sparkles size={14} /> Regenerate
+            </button>
+          )}
+          <button className="btn small danger" onClick={onRemove}>
+            <Trash2 size={14} /> Delete
+          </button>
+        </div>
       </div>
       {showCards && (
         <ul className="card-preview">
-          {deckCards.map((c) => (
+          {shown.map((c) => (
             <li key={c.id}>
-              <span className="tag">{c.kind === 'qa' ? 'Q&A' : c.kind === 'cloze' ? (c.auto ? 'Blank · auto' : 'Blank') : 'Explain'}</span>
+              <span className="row wrap">
+                <span className="tag">{c.kind === 'qa' ? 'Short answer' : c.kind === 'cloze' ? (c.auto ? 'Blank · auto' : 'Fill in the blank') : 'Explain'}</span>
+                {c.topic && <span className="tag">{c.topic}</span>}
+                {c.ai && c.fromNotes === false && (
+                  <span className="tag" title="Your notes only name this topic, so this question comes from standard course material.">
+                    Beyond your notes
+                  </span>
+                )}
+              </span>
               <div>{c.front}</div>
-              <div className="muted small">→ {c.back.length > 140 ? c.back.slice(0, 140) + '…' : c.back}</div>
+              <div className="muted small">
+                → {c.back.length > 160 ? c.back.slice(0, 160) + '…' : c.back}
+                <button
+                  className="remove-card"
+                  title="Remove this question"
+                  aria-label="Remove this question"
+                  onClick={() => {
+                    if (c.ai) update({ aiCards: deck.aiCards!.filter((x) => x.id !== c.id) });
+                  }}
+                  hidden={!c.ai}
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
             </li>
           ))}
         </ul>

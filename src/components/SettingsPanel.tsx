@@ -145,6 +145,26 @@ export function SettingsPanel() {
       </section>
 
       <section className="card">
+        <div className="eyebrow">AI questions</div>
+        <p className="muted small">
+          AI reads your notes and writes short exam-style questions, skipping instructions like “Read chapter 4”. Your notes are sent to Claude (Anthropic’s AI) only when questions are generated.
+        </p>
+        <Toggle label="Write AI questions automatically when I upload files" checked={settings.aiAutoGenerate} onChange={(v) => set('aiAutoGenerate', v)} />
+        <label className="select-row">
+          <span>Access code</span>
+          <input
+            type="password"
+            value={settings.aiAccessCode}
+            onChange={(e) => set('aiAccessCode', e.target.value)}
+            placeholder="Only if your site has one"
+            autoComplete="off"
+            aria-label="AI access code"
+            style={{ width: 180 }}
+          />
+        </label>
+      </section>
+
+      <section className="card">
         <div className="eyebrow">Your data</div>
         <p className="muted small">Everything is stored privately in this browser — no account needed. Back it up to move between devices.</p>
         <div className="row wrap">
