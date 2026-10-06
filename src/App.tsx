@@ -15,6 +15,7 @@ import { LearnPanel } from './components/LearnPanel';
 import { SettingsPanel } from './components/SettingsPanel';
 import { MediaDock } from './components/MediaDock';
 import { QuizModal } from './components/QuizModal';
+import { QuizBuilder } from './components/QuizBuilder';
 import { ReflectionModal, RecallModal } from './components/Reflection';
 import { Checkpoint } from './components/Checkpoint';
 import { ParkingInput } from './components/ParkingInput';
@@ -228,7 +229,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
       if (el.closest('input, textarea, select, [contenteditable="true"]') || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (store.quiz || reflectionId || recallOpen) return;
+      if (store.quiz || store.builderOpen || reflectionId || recallOpen) return;
       if (e.code === 'Space') {
         e.preventDefault();
         if (timer.running) pause();
@@ -243,7 +244,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [timer.running, start, pause, reset, finishPhase, store.quiz, reflectionId, recallOpen]);
+  }, [timer.running, start, pause, reset, finishPhase, store.quiz, store.builderOpen, reflectionId, recallOpen]);
 
   const todayMinutes = sessions.filter((s) => s.day === store.today).reduce((a, s) => a + s.minutes, 0);
   const openTasks = tasks.filter((t) => !t.done && t.day === store.today);
@@ -339,6 +340,20 @@ export default function App() {
       </aside>
       {panel && <div className="scrim" onClick={() => setPanel(null)} />}
 
+      {store.builderOpen && (
+        <QuizBuilder
+          onClose={() => store.setBuilderOpen(false)}
+          onStartBlock={() => {
+            // Quiz time counts as a focus block; skip the mid-block checkpoint since you're already testing yourself.
+            setPanel(null);
+            setTimer((t) =>
+              t.mode === 'focus' && t.running
+                ? { ...t, checkpointFired: true }
+                : { ...t, mode: 'focus', running: true, started: true, endAt: Date.now() + durations.focus, remaining: durations.focus, checkpointFired: true },
+            );
+          }}
+        />
+      )}
       {store.quiz && <QuizModal request={store.quiz} onClose={() => store.setQuiz(null)} />}
       {recallOpen && (
         <RecallModal

@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { Brain, ChevronDown, FileUp, Pencil, Plus, Shuffle, Trash2 } from 'lucide-react';
+import { Brain, ChevronDown, FileUp, ListChecks, Pencil, Plus, Shuffle, Trash2 } from 'lucide-react';
 import { useStore } from '../store';
 import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
 import { uid } from '../lib/storage';
@@ -8,7 +8,7 @@ import { ACCEPTED_FILES, ImportError, extractText, titleFromFile } from '../lib/
 import type { Deck } from '../lib/types';
 
 export function NotesPanel() {
-  const { decks, setDecks, cards, unlocked, reviews, setTasks, setQuiz } = useStore();
+  const { decks, setDecks, cards, unlocked, reviews, setTasks, setQuiz, setBuilderOpen } = useStore();
   const [editing, setEditing] = useState<string | null>(null);
   const [importing, setImporting] = useState<string | null>(null);
   const [importError, setImportError] = useState('');
@@ -110,6 +110,11 @@ export function NotesPanel() {
             e.target.value = '';
           }}
         />
+        {cards.length > 0 && (
+          <button className="btn" onClick={() => setBuilderOpen(true)}>
+            <ListChecks size={16} /> Generate quiz
+          </button>
+        )}
         {unlocked.length > 0 && (
           <button
             className="btn"

@@ -32,7 +32,7 @@ const MODES: { id: Mode; label: string }[] = [
 ];
 
 export function TimerView(p: Props) {
-  const { settings, setSettings, activeTask, setActiveTaskId } = useStore();
+  const { settings, setSettings, activeTask, setActiveTaskId, cards, setBuilderOpen } = useStore();
   const progress = p.total ? 1 - p.remaining / p.total : 0;
   const R = 46;
   const C = 2 * Math.PI * R;
@@ -87,6 +87,11 @@ export function TimerView(p: Props) {
         <div className="focus-meta fade-zen">
           <TaskPicker activeTask={activeTask} tasks={p.openTasks} onPick={setActiveTaskId} onOpenToday={p.onOpenToday} />
           <SectionPicker />
+          {cards.length > 0 && !p.started && (
+            <button className="link-btn quiz-link" onClick={() => setBuilderOpen(true)}>
+              Test yourself — generate a quiz
+            </button>
+          )}
           <input
             className="intention"
             value={p.intention}

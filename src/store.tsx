@@ -58,6 +58,7 @@ function useStoreValue() {
   const [soundPlaying, setSoundPlaying] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<{ name: string; embed: string } | null>(null);
   const [quiz, setQuiz] = useState<QuizRequest | null>(null);
+  const [builderOpen, setBuilderOpen] = useState(false);
   const [uploadVersion, setUploadVersion] = useState(0);
 
   const cards = useMemo<Card[]>(() => decks.flatMap(parseCards), [decks]);
@@ -130,6 +131,8 @@ function useStoreValue() {
     setNowPlaying,
     quiz,
     setQuiz,
+    builderOpen,
+    setBuilderOpen,
     uploadVersion,
     setUploadVersion,
     cards,
