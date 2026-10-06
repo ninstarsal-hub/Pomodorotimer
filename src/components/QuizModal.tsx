@@ -117,8 +117,6 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
     <div className="question">
       <div className="eyebrow muted">
         {prompt}
-        {card.topic ? ` · ${card.topic}` : ''}
-        {card.ai && card.fromNotes === false ? ' · beyond your notes' : ''}
       </div>
       <p className="q-front">{card.front}</p>
 

@@ -25,8 +25,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 
 **Learn**
 - Upload notes, slides or study guides: PDF, Word (`.docx`), PowerPoint (`.pptx`, including speaker notes), `.txt`, `.md`, `.html` or `.rtf`. You can also paste text or drag files in. Files are read in your browser
-- **AI questions:** Claude reads your notes and writes short exam-style questions, skipping instructions like "Read chapter 4". When a study guide only names a topic ("Know the stages of meiosis"), it writes questions on that topic and labels them "beyond your notes"
-- Without AI, a built-in parser turns notes into flashcards, fill-in-the-blanks and "explain it" prompts. It also skips instructions and logistics
+- Stillpoint turns notes into flashcards, fill-in-the-blanks and "explain it" prompts, and skips instructions and logistics like "Read chapter 4" or "Due Friday". Everything runs in your browser, so it's free
 - At a set point in each focus block (15 minutes by default) a **recall checkpoint** appears. You can take a 3-question quiz or write down everything you remember
 - A short warm-up quiz when a block starts (pre-testing)
 - Spaced repetition: cards you get wrong come back soon, and cards you know come back further apart
@@ -51,25 +50,12 @@ Term - definition              → flashcard
 Key word in **bold** or ==highlight==  → fill-in-the-blank
 ```
 
-## Setting up AI questions
-
-AI questions run through a Vercel serverless function (`api/generate-cards.ts`) that calls the Claude API. To turn them on:
-
-1. Create an API key at https://console.anthropic.com/settings/keys (you need API credits there).
-2. In Vercel, open the project, go to **Settings → Environment Variables** and add `ANTHROPIC_API_KEY`.
-3. Recommended: also add `STILLPOINT_ACCESS_CODE` with any password, so other people who find your site can't spend your credits. Enter the same code in the app under **Settings → AI questions**.
-4. Redeploy (**Deployments → ⋯ → Redeploy**).
-
-The function uses Claude Opus 5.5. Your notes are sent to Anthropic only when questions are generated.
-
 ## Development
 
 ```bash
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # type-check + production build into dist/
-npm run typecheck  # also checks the api/ function
-npx vercel dev   # run with the /api function locally (needs ANTHROPIC_API_KEY)
 ```
 
 ## Deploy to Vercel
