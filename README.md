@@ -36,6 +36,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 
 **Plan**
 - **Exam planner:** add an exam date and the sections it covers. Stillpoint schedules when to learn each new section and when to review each one, at about 14, 7 and 3 days before the exam plus a final review the day before. The plan is rebuilt every day, so a missed day just rolls forward instead of piling up
+- **Exam countdown:** a small box at the top shows days until your next exam and how ready you are. Arrows step through upcoming exams, clicking it lists them all, and you can hide it (and bring it back from the calendar icon)
 - **Today card on the main screen:** shows how many review questions are due (with a time estimate) and today's exam-plan tasks, each with a one-click Study or Quiz button
 - **Goals:** daily and weekly focus-minute goals, a progress ring in the corner, and streaks that only count days you hit your goal
 

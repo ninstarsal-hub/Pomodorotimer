@@ -22,6 +22,8 @@ export interface Settings {
   dailyGoalMin: number;
   /** Weekly focus goal in minutes (0 = no goal). */
   weeklyGoalMin: number;
+  /** Show the next-exam countdown in the top bar. */
+  showExamWidget: boolean;
 }
 
 export interface BackgroundSetting {

@@ -22,6 +22,7 @@ import { ParkingInput } from './components/ParkingInput';
 import { Agenda } from './components/Agenda';
 import { PlanPanel } from './components/PlanPanel';
 import { GoalStat } from './components/GoalStat';
+import { ExamWidget } from './components/ExamWidget';
 
 type Panel = 'today' | 'plan' | 'sound' | 'notes' | 'stats' | 'learn' | 'settings';
 
@@ -54,6 +55,16 @@ export default function App() {
   const [checkpoint, setCheckpoint] = useState(false);
   const [reflectionId, setReflectionId] = useState<string | null>(null);
   const [recallOpen, setRecallOpen] = useState(false);
+
+  // Panels open just below the top bar, whose height changes (wrapping on phones, exam countdown).
+  const topbarRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = topbarRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => document.documentElement.style.setProperty('--topbar-h', `${el.offsetHeight}px`));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const durations: Record<Mode, number> = useMemo(
     () => ({ focus: settings.focusMin * 60_000, short: settings.shortMin * 60_000, long: settings.longMin * 60_000 }),
@@ -257,10 +268,13 @@ export default function App() {
     <div className={`app ${zen ? 'is-zen' : ''} ${panel ? 'has-panel' : ''} mode-${timer.mode}`}>
       <Background bg={settings.background} dim={settings.dim} blur={settings.blur} uploadVersion={store.uploadVersion} />
 
-      <header className="topbar fade-zen">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden />
-          <span>Stillpoint</span>
+      <header className="topbar fade-zen" ref={topbarRef}>
+        <div className="brand-wrap">
+          <div className="brand">
+            <span className="brand-mark" aria-hidden />
+            <span>Stillpoint</span>
+          </div>
+          <ExamWidget onOpenPlan={() => setPanel('plan')} />
         </div>
         <nav className="nav" aria-label="Panels">
           {PANELS.map(({ id, label, icon: Icon }) => (

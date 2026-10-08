@@ -24,6 +24,7 @@ export const DEFAULT_SETTINGS: Settings = {
   blur: 0,
   dailyGoalMin: 60,
   weeklyGoalMin: 300,
+  showExamWidget: true,
 };
 
 export const sectionKey = (deckId: string, section: string) => `${deckId}\u0000${section}`;

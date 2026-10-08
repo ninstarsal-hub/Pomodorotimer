@@ -800,7 +800,7 @@ input[type='range']::-moz-range-thumb {
 .drawer {
   position: fixed !important;
   z-index: 20 !important;
-  top: 72px;
+  top: calc(var(--topbar-h, 72px) + 2px);
   right: 12px;
   bottom: 12px;
   width: min(440px, calc(100vw - 24px));
@@ -1957,7 +1957,7 @@ kbd {
     bottom: 110px;
   }
   .drawer {
-    top: 104px;
+    top: calc(var(--topbar-h, 104px) + 2px);
     right: 8px;
     bottom: 8px;
     width: calc(100vw - 16px);
@@ -2394,4 +2394,237 @@ input[type='date'] {
 }
 .level-strong {
   color: var(--accent);
+}
+
+/* ---------- exam countdown widget ---------- */
+
+.brand-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.exam-widget {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  min-width: 0;
+}
+.exam-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 10px;
+  text-align: left;
+  min-width: 0;
+}
+.exam-main:hover {
+  background: var(--surface-3);
+}
+.exam-days {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 34px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+.exam-days strong {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 20px;
+}
+.exam-days span {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+.exam-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.exam-title {
+  font-size: 13px;
+  max-width: 180px;
+}
+.exam-ready {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.mini-bar {
+  width: 54px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.mini-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+}
+.exam-count {
+  font-size: 11px;
+}
+.exam-nav {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--muted);
+}
+.exam-nav:hover {
+  color: var(--text);
+  background: var(--surface-3);
+}
+.exam-show {
+  width: auto;
+  padding: 0 10px;
+  gap: 5px;
+  display: inline-flex;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.exam-show-count {
+  font-size: 12px;
+}
+.exam-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 25;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  padding: 14px;
+  border-radius: var(--radius);
+  background: rgba(16, 16, 18, 0.97);
+  border: 1px solid var(--line);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: rise 0.2s var(--ease);
+}
+.exam-dropdown ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+.exam-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 10px;
+  text-align: left;
+}
+.exam-row:hover,
+.exam-row.is-current {
+  background: var(--surface-3);
+}
+.exam-row-days {
+  width: 64px;
+  flex: none;
+  font-size: 12px;
+  color: var(--accent);
+  padding-top: 1px;
+}
+.exam-row-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+}
+@media (max-width: 640px) {
+  .brand-wrap {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .exam-title {
+    max-width: 120px;
+  }
+}
+/* Keep top-bar dropdowns above the main stage (but below panels and modals). */
+.app > .topbar {
+  z-index: 12;
+}
+@media (max-width: 640px) {
+  .brand-wrap {
+    gap: 10px;
+  }
+  .exam-widget {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .exam-main {
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+  }
+  .exam-info {
+    flex: 1;
+  }
+  .exam-title {
+    max-width: none;
+  }
+  .exam-count {
+    display: none;
+  }
+  .exam-nav {
+    width: 22px;
+  }
+  .exam-days {
+    min-width: 30px;
+  }
+  .exam-days strong {
+    font-size: 17px;
+  }
+}
+@media (max-width: 640px) {
+  .exam-info {
+    overflow: hidden;
+  }
+  .brand {
+    flex: none;
+  }
+}
+@media (max-width: 420px) {
+  .exam-ready .mini-bar {
+    display: none;
+  }
+  .brand {
+    font-size: 17px;
+    gap: 7px;
+  }
+}
+/* Let grid rows shrink to the viewport instead of growing to fit long text. */
+.app {
+  grid-template-columns: minmax(0, 1fr);
 }
