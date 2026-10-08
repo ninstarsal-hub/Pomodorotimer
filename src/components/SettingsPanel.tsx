@@ -3,6 +3,7 @@ import { Download, Upload } from 'lucide-react';
 import { useStore } from '../store';
 import { ACCENTS, BACKGROUND_PRESETS } from '../lib/content';
 import { putBlob } from '../lib/storage';
+import { InstallSection } from './InstallUI';
 import type { Settings } from '../lib/types';
 
 const PREFIX = 'stillpoint:';
@@ -152,6 +153,8 @@ export function SettingsPanel() {
           <input type="range" min={0} max={24} step={1} value={settings.blur} onChange={(e) => set('blur', Number(e.target.value))} aria-label="Background blur (images)" />
         </label>
       </section>
+
+      <InstallSection />
 
       <section className="card">
         <div className="eyebrow">Your data</div>

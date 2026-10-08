@@ -23,6 +23,7 @@ import { Agenda } from './components/Agenda';
 import { PlanPanel } from './components/PlanPanel';
 import { GoalStat } from './components/GoalStat';
 import { ExamWidget } from './components/ExamWidget';
+import { InstallButton, UpdateToast } from './components/InstallUI';
 import { PracticePanel } from './components/PracticePanel';
 import { PracticeRunner } from './components/PracticeRunner';
 
@@ -279,6 +280,7 @@ export default function App() {
           </div>
           <ExamWidget onOpenPlan={() => setPanel('plan')} />
         </div>
+        <InstallButton />
         <nav className="nav" aria-label="Panels">
           {PANELS.map(({ id, label, icon: Icon }) => (
             <button key={id} className={`icon-btn ${panel === id ? 'is-active' : ''}`} onClick={() => setPanel(panel === id ? null : id)} aria-label={label} data-tip={label}>
@@ -321,6 +323,7 @@ export default function App() {
       </footer>
 
       <MediaDock />
+      <UpdateToast />
 
       {checkpoint && (
         <Checkpoint
