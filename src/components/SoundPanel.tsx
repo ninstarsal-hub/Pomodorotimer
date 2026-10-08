@@ -101,6 +101,9 @@ export function SoundPanel() {
                 <option value="pink">Pink</option>
                 <option value="white">White</option>
                 <option value="rain">Rain</option>
+                <option value="cafe">Café</option>
+                <option value="fire">Fireplace</option>
+                <option value="ocean">Ocean</option>
               </select>
               <input type="range" min={0} max={1} step={0.01} value={soundParams.noiseLevel} onChange={(e) => set('noiseLevel', Number(e.target.value))} aria-label="Noise level" />
             </label>
@@ -149,6 +152,7 @@ export function SoundPanel() {
 
       <section className="card">
         <div className="eyebrow">Music & streams</div>
+        <p className="muted small">Focus sounds keep playing under music — e.g. Rain Room + a lofi stream. Turn the focus-sound volume down a little so the music stays on top.</p>
         {nowPlaying && (
           <p className="small">
             Now playing: <strong>{nowPlaying.name}</strong>{' '}

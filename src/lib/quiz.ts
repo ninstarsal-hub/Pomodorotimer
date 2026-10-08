@@ -225,6 +225,19 @@ export function parseCards(deck: Deck): Card[] {
   return out;
 }
 
+/** A deck's questions with the student's edits, deletions and own questions applied. */
+export function deckCards(deck: Deck): Card[] {
+  const edits = deck.edits ?? {};
+  const out: Card[] = [];
+  for (const c of parseCards(deck)) {
+    const e = edits[c.id];
+    if (e === null) continue;
+    out.push(e ? { ...c, front: e.front, back: e.back, edited: true } : c);
+  }
+  for (const c of deck.custom ?? []) out.push({ ...c, deckId: deck.id, edited: true });
+  return out;
+}
+
 /* ---------- spaced repetition (Leitner-style with SM-2 flavour) ---------- */
 
 const DAY = 86_400_000;

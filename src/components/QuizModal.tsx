@@ -18,7 +18,7 @@ export function QuizModal({ request, onClose }: { request: QuizRequest; onClose:
   const grade = (g: Grade) => {
     const correct = g !== 'again';
     setReviews((r) => ({ ...r, [item.card.id]: schedule(r[item.card.id], g) }));
-    logReview(correct);
+    logReview(correct, item.card);
     setResults((rs) => [...rs, { item, correct }]);
     setI((x) => x + 1);
   };

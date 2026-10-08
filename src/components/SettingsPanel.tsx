@@ -74,6 +74,15 @@ export function SettingsPanel() {
       </section>
 
       <section className="card">
+        <div className="eyebrow">Goals</div>
+        <div className="num-grid">
+          <Num label="Daily focus goal" value={settings.dailyGoalMin} min={0} max={720} onChange={(v) => set('dailyGoalMin', v)} />
+          <Num label="Weekly focus goal" value={settings.weeklyGoalMin} min={0} max={5000} onChange={(v) => set('weeklyGoalMin', v)} />
+        </div>
+        <p className="muted small">Your streak counts days you hit the daily goal. Set a goal to 0 to turn it off.</p>
+      </section>
+
+      <section className="card">
         <div className="eyebrow">Learning</div>
         <label className="select-row">
           <span>Recall checkpoint during focus</span>

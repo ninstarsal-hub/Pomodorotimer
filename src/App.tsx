@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, ChartColumn, Headphones, Lightbulb, ListTodo, Maximize2, Minimize2, Settings as SettingsIcon, X } from 'lucide-react';
+import { BookOpen, CalendarDays, ChartColumn, Headphones, Lightbulb, ListTodo, Maximize2, Minimize2, Settings as SettingsIcon, X } from 'lucide-react';
 import { useStore } from './store';
-import { usePersistentState, dayKey, fmtClock, fmtMinutes, uid } from './lib/storage';
+import { usePersistentState, dayKey, fmtClock, uid } from './lib/storage';
 import { chime, engine } from './lib/audio';
 import { buildQuiz, isDue } from './lib/quiz';
 import type { Mode, TimerState } from './lib/types';
@@ -19,11 +19,15 @@ import { QuizBuilder } from './components/QuizBuilder';
 import { ReflectionModal, RecallModal } from './components/Reflection';
 import { Checkpoint } from './components/Checkpoint';
 import { ParkingInput } from './components/ParkingInput';
+import { Agenda } from './components/Agenda';
+import { PlanPanel } from './components/PlanPanel';
+import { GoalStat } from './components/GoalStat';
 
-type Panel = 'today' | 'sound' | 'notes' | 'stats' | 'learn' | 'settings';
+type Panel = 'today' | 'plan' | 'sound' | 'notes' | 'stats' | 'learn' | 'settings';
 
 const PANELS: { id: Panel; label: string; icon: typeof ListTodo }[] = [
   { id: 'today', label: 'Today', icon: ListTodo },
+  { id: 'plan', label: 'Exam plan', icon: CalendarDays },
   { id: 'sound', label: 'Sound', icon: Headphones },
   { id: 'notes', label: 'Notes & Quiz', icon: BookOpen },
   { id: 'stats', label: 'Progress', icon: ChartColumn },
@@ -289,14 +293,14 @@ export default function App() {
           onMode={switchMode}
           openTasks={openTasks}
           onOpenToday={() => setPanel('today')}
-        />
+        >
+          {!timer.running && <Agenda onOpenPlan={() => setPanel('plan')} />}
+        </TimerView>
       </main>
 
       <footer className="footer fade-zen">
         <ParkingInput onOpen={() => setPanel('today')} />
-        <div className="footer-stat" title="Focused today">
-          <span className="dot" /> {fmtMinutes(todayMinutes)} focused today
-        </div>
+        <GoalStat minutes={todayMinutes} goal={settings.dailyGoalMin} onClick={() => setPanel('stats')} />
       </footer>
 
       <MediaDock />
@@ -329,6 +333,7 @@ export default function App() {
             </div>
             <div className="drawer-body">
               {panel === 'today' && <TodayPanel />}
+              {panel === 'plan' && <PlanPanel />}
               {panel === 'sound' && <SoundPanel />}
               {panel === 'notes' && <NotesPanel />}
               {panel === 'stats' && <StatsPanel />}

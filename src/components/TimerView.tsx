@@ -23,6 +23,7 @@ interface Props {
   onMode: (m: Mode) => void;
   openTasks: Task[];
   onOpenToday: () => void;
+  children?: React.ReactNode;
 }
 
 const MODES: { id: Mode; label: string }[] = [
@@ -87,6 +88,7 @@ export function TimerView(p: Props) {
         <div className="focus-meta fade-zen">
           <TaskPicker activeTask={activeTask} tasks={p.openTasks} onPick={setActiveTaskId} onOpenToday={p.onOpenToday} />
           <SectionPicker />
+          {p.children}
           {cards.length > 0 && !p.started && (
             <button className="link-btn quiz-link" onClick={() => setBuilderOpen(true)}>
               Test yourself — generate a quiz

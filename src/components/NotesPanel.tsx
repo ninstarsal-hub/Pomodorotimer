@@ -5,7 +5,7 @@ import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
 import { uid } from '../lib/storage';
 import { SAMPLE_NOTES } from '../lib/content';
 import { ACCEPTED_FILES, ImportError, extractText, titleFromFile } from '../lib/importers';
-import type { Deck } from '../lib/types';
+import type { Card, Deck } from '../lib/types';
 
 export function NotesPanel() {
   const { decks, setDecks, cards, unlocked, reviews, setTasks, setQuiz, setBuilderOpen } = useStore();
@@ -236,7 +236,7 @@ function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
 
       <div className="row between wrap">
         <button className="link-btn" onClick={() => setShowCards((s) => !s)}>
-          {showCards ? 'Hide' : 'Preview'} {shown.length} questions
+          {showCards ? 'Hide questions' : `Review & edit ${shown.length} questions`}
         </button>
         <div className="row">
           <button className="btn small danger" onClick={onRemove}>
@@ -244,21 +244,7 @@ function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
           </button>
         </div>
       </div>
-      {showCards && (
-        <ul className="card-preview">
-          {shown.map((c) => (
-            <li key={c.id}>
-              <span className="row wrap">
-                <span className="tag">{c.kind === 'qa' ? 'Short answer' : c.kind === 'cloze' ? (c.auto ? 'Blank · auto' : 'Fill in the blank') : 'Explain'}</span>
-              </span>
-              <div>{c.front}</div>
-              <div className="muted small">
-                → {c.back.length > 160 ? c.back.slice(0, 160) + '…' : c.back}
-              </div>
-            </li>
-          ))}
-        </ul>
-      )}
+      {showCards && <QuestionEditor deck={deck} cards={shown} update={update} />}
     </div>
   );
 }
@@ -301,6 +287,109 @@ function SectionList({ deck }: { deck: Deck }) {
         })}
       </ul>
       {single && <p className="muted small">Tip: split notes into sections with headings like “# Session 3” or a line like “Lecture 5: Genetics”.</p>}
+    </div>
+  );
+}
+
+/** Edit, delete or add questions. Edits are stored by question id, so they survive editing the notes. */
+function QuestionEditor({ deck, cards, update }: { deck: Deck; cards: Card[]; update: (p: Partial<Deck>) => void }) {
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState({ front: '', back: '' });
+  const { studyingNow } = useStore();
+  const sections = deckSections(deck);
+  const [newQ, setNewQ] = useState({ front: '', back: '', section: studyingNow?.deckId === deck.id ? studyingNow.section : (deck.studied?.[deck.studied.length - 1] ?? sections[0] ?? '') });
+  const deleted = Object.values(deck.edits ?? {}).filter((e) => e === null).length;
+
+  const save = (c: Card) => {
+    if (!draft.front.trim() || !draft.back.trim()) return;
+    if (deck.custom?.some((x) => x.id === c.id)) {
+      update({ custom: deck.custom.map((x) => (x.id === c.id ? { ...x, front: draft.front.trim(), back: draft.back.trim() } : x)) });
+    } else {
+      update({ edits: { ...deck.edits, [c.id]: { front: draft.front.trim(), back: draft.back.trim() } } });
+    }
+    setEditing(null);
+  };
+  const remove = (c: Card) => {
+    if (deck.custom?.some((x) => x.id === c.id)) update({ custom: deck.custom.filter((x) => x.id !== c.id) });
+    else update({ edits: { ...deck.edits, [c.id]: null } });
+  };
+  const add = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newQ.front.trim() || !newQ.back.trim()) return;
+    const card: Card = { id: `${deck.id}:custom:${uid()}`, deckId: deck.id, kind: 'qa', front: newQ.front.trim(), back: newQ.back.trim(), section: newQ.section };
+    update({ custom: [...(deck.custom ?? []), card] });
+    setNewQ((q) => ({ ...q, front: '', back: '' }));
+  };
+
+  return (
+    <div className="stack-sm">
+      <ul className="card-preview">
+        {cards.map((c) =>
+          editing === c.id ? (
+            <li key={c.id} className="is-editing">
+              <textarea rows={2} value={draft.front} onChange={(e) => setDraft((d) => ({ ...d, front: e.target.value }))} aria-label="Question" />
+              <textarea rows={2} value={draft.back} onChange={(e) => setDraft((d) => ({ ...d, back: e.target.value }))} aria-label="Answer" />
+              {c.kind === 'cloze' && <span className="muted small">Keep “_____” in the question where the answer goes.</span>}
+              <div className="row">
+                <button className="btn small primary" onClick={() => save(c)}>
+                  Save
+                </button>
+                <button className="btn small ghost" onClick={() => setEditing(null)}>
+                  Cancel
+                </button>
+              </div>
+            </li>
+          ) : (
+            <li key={c.id}>
+              <span className="row wrap">
+                <span className="tag">{c.kind === 'qa' ? 'Short answer' : c.kind === 'cloze' ? (c.auto ? 'Blank · auto' : 'Fill in the blank') : 'Explain'}</span>
+                {sections.length > 1 && <span className="tag">{sectionLabel(c.section, deck)}</span>}
+                {c.edited && <span className="tag">edited</span>}
+                <span className="grow" />
+                <button
+                  className="icon-btn small"
+                  aria-label="Edit question"
+                  onClick={() => {
+                    setEditing(c.id);
+                    setDraft({ front: c.front, back: c.back });
+                  }}
+                >
+                  <Pencil size={12} />
+                </button>
+                <button className="icon-btn small" aria-label="Delete question" onClick={() => remove(c)}>
+                  <Trash2 size={12} />
+                </button>
+              </span>
+              <div>{c.front}</div>
+              <div className="muted small">→ {c.back.length > 160 ? c.back.slice(0, 160) + '…' : c.back}</div>
+            </li>
+          ),
+        )}
+      </ul>
+      {deleted > 0 && (
+        <button className="link-btn small" onClick={() => update({ edits: Object.fromEntries(Object.entries(deck.edits ?? {}).filter(([, v]) => v !== null)) })}>
+          Restore {deleted} deleted question{deleted === 1 ? '' : 's'}
+        </button>
+      )}
+      <form className="add-question stack-sm" onSubmit={add}>
+        <span className="field-label">Add your own question</span>
+        <input value={newQ.front} onChange={(e) => setNewQ((q) => ({ ...q, front: e.target.value }))} placeholder="Question or term" aria-label="New question" />
+        <input value={newQ.back} onChange={(e) => setNewQ((q) => ({ ...q, back: e.target.value }))} placeholder="Answer" aria-label="New answer" />
+        <div className="row">
+          {sections.length > 1 && (
+            <select className="grow" value={newQ.section} onChange={(e) => setNewQ((q) => ({ ...q, section: e.target.value }))} aria-label="Section">
+              {sections.map((sec) => (
+                <option key={sec || '__none'} value={sec}>
+                  {sectionLabel(sec, deck)}
+                </option>
+              ))}
+            </select>
+          )}
+          <button className="btn small primary" type="submit" disabled={!newQ.front.trim() || !newQ.back.trim()}>
+            <Plus size={12} /> Add
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

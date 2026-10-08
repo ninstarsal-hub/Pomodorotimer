@@ -487,7 +487,7 @@ input[type='range']::-moz-range-thumb {
 
 .dial {
   position: relative;
-  width: min(360px, 78vw, 38vh);
+  width: min(360px, 78vw, 34vh);
   min-width: 240px;
   aspect-ratio: 1;
   display: grid;
@@ -622,7 +622,7 @@ input[type='range']::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .task-pill {
@@ -2234,4 +2234,164 @@ input[type='checkbox'].box:indeterminate {
 }
 .subject-list.wide li {
   grid-template-columns: minmax(0, 1.3fr) 1fr 40px;
+}
+
+/* ---------- planner, agenda, goals, mastery ---------- */
+
+.agenda {
+  width: min(440px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  font-size: 13px;
+}
+.agenda-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 2px 0;
+}
+.agenda-row strong {
+  font-weight: 500;
+}
+.agenda-exam:hover .grow strong {
+  text-decoration: underline;
+}
+.plan-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.plan-list.compact {
+  padding-left: 24px;
+}
+.plan-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  min-height: 30px;
+}
+.plan-item.is-done .plan-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.plan-text {
+  flex: 1;
+  min-width: 0;
+}
+.plan-check {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border-radius: 50%;
+  border: 1.5px solid var(--line-strong);
+  display: grid;
+  place-items: center;
+  color: #121214;
+}
+.plan-check.is-checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.plan-kind {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text-2);
+}
+.plan-kind.kind-learn {
+  color: var(--accent);
+}
+.plan-kind.kind-final {
+  color: #e0aeb0;
+}
+.plan-item .btn.small {
+  padding: 4px 9px;
+}
+.exam-card strong {
+  font-weight: 500;
+}
+.readiness {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.schedule {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.schedule li {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 8px;
+}
+input[type='date'] {
+  color-scheme: dark;
+}
+.footer-stat.is-met {
+  color: var(--accent);
+}
+.footer-stat:hover {
+  color: var(--text);
+}
+.goal-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.bar-track {
+  position: relative;
+}
+.goal-tick {
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  height: 0;
+  border-top: 1px dashed color-mix(in srgb, var(--text) 35%, transparent);
+  pointer-events: none;
+}
+.mastery-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+.mastery-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.level {
+  white-space: nowrap;
+  margin-left: 8px;
+}
+.level-weak {
+  color: #e0aeb0;
+}
+.level-okay {
+  color: var(--text-2);
+}
+.level-strong {
+  color: var(--accent);
 }

@@ -8,7 +8,7 @@
  *  - optional binaural beat (needs headphones)
  */
 
-export type NoiseType = 'off' | 'white' | 'pink' | 'brown' | 'rain';
+export type NoiseType = 'off' | 'white' | 'pink' | 'brown' | 'rain' | 'cafe' | 'fire' | 'ocean';
 export type PadKey = 'off' | 'calm' | 'bright' | 'deep';
 
 export interface SoundParams {
@@ -68,6 +68,24 @@ export const SOUND_PRESETS: SoundPreset[] = [
     params: { ...base, noise: 'rain', noiseLevel: 0.6, pad: 'calm', padLevel: 0.22 },
   },
   {
+    id: 'cafe',
+    name: 'Café',
+    blurb: 'Warm, indistinct room murmur — busy enough to feel alive, too blurry to understand.',
+    params: { ...base, noise: 'cafe', noiseLevel: 0.6, pad: 'calm', padLevel: 0.12 },
+  },
+  {
+    id: 'fire',
+    name: 'Fireplace',
+    blurb: 'Low crackling fire with a deep, soft roar.',
+    params: { ...base, noise: 'fire', noiseLevel: 0.65 },
+  },
+  {
+    id: 'ocean',
+    name: 'Ocean',
+    blurb: 'Slow waves rolling in and out — about six per minute, close to a calm breathing pace.',
+    params: { ...base, noise: 'ocean', noiseLevel: 0.65, pad: 'deep', padLevel: 0.12 },
+  },
+  {
     id: 'brown',
     name: 'Pure Brown Noise',
     blurb: 'Just deep, steady noise to mask the room.',
@@ -98,7 +116,10 @@ function makeNoiseBuffer(ctx: AudioContext, type: Exclude<NoiseType, 'off'>) {
       const w = Math.random() * 2 - 1;
       if (type === 'white' || type === 'rain') {
         d[i] = w * 0.5;
-      } else if (type === 'pink') {
+      } else if (type === 'fire') {
+        last = (last + 0.02 * w) / 1.02;
+        d[i] = last * 3;
+      } else if (type === 'pink' || type === 'cafe' || type === 'ocean') {
         b0 = 0.99886 * b0 + w * 0.0555179;
         b1 = 0.99332 * b1 + w * 0.0750759;
         b2 = 0.969 * b2 + w * 0.153852;
@@ -110,6 +131,16 @@ function makeNoiseBuffer(ctx: AudioContext, type: Exclude<NoiseType, 'off'>) {
       } else {
         last = (last + 0.02 * w) / 1.02;
         d[i] = last * 3.5;
+      }
+    }
+    if (type === 'fire') {
+      // Sprinkle short, decaying crackles of random size.
+      const crackles = seconds * (6 + Math.random() * 4);
+      for (let k = 0; k < crackles; k++) {
+        const at = Math.floor(Math.random() * (len - 4000));
+        const size = 0.15 + Math.random() ** 3 * 0.85;
+        const dur = 80 + Math.floor(Math.random() * 900);
+        for (let j = 0; j < dur; j++) d[at + j] += (Math.random() * 2 - 1) * size * Math.exp((-j / dur) * 6);
       }
     }
     // crossfade the ends so the loop point is inaudible
@@ -240,6 +271,63 @@ export class FocusEngine {
       lp.connect(shimmer);
       tail = shimmer;
       nodes.push(hp, lp, lfo, lfoAmt, shimmer);
+    } else if (type === 'cafe') {
+      // Speech-band murmur: muffled so no words come through, with irregular swells.
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 650;
+      bp.Q.value = 0.6;
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 2400;
+      const murmur = ctx.createGain();
+      murmur.gain.value = 1.2;
+      const lfos: AudioNode[] = [];
+      for (const [f, amt] of [
+        [0.31, 0.25],
+        [0.73, 0.18],
+        [1.7, 0.1],
+      ]) {
+        const o = ctx.createOscillator();
+        o.frequency.value = f;
+        const a = ctx.createGain();
+        a.gain.value = amt;
+        o.connect(a).connect(murmur.gain);
+        o.start();
+        lfos.push(o, a);
+      }
+      tail.connect(bp);
+      bp.connect(lp);
+      lp.connect(murmur);
+      tail = murmur;
+      nodes.push(bp, lp, ...lfos, murmur);
+    } else if (type === 'ocean') {
+      // Waves: a slow swell in volume and brightness, ~10 s per wave.
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 900;
+      const sweep = ctx.createOscillator();
+      sweep.frequency.value = 0.1;
+      const sweepAmt = ctx.createGain();
+      sweepAmt.gain.value = 700;
+      sweep.connect(sweepAmt).connect(lp.frequency);
+      const swell = ctx.createGain();
+      swell.gain.value = 0.55;
+      const swellAmt = ctx.createGain();
+      swellAmt.gain.value = 0.45;
+      sweep.connect(swellAmt).connect(swell.gain);
+      sweep.start();
+      tail.connect(lp);
+      lp.connect(swell);
+      tail = swell;
+      nodes.push(lp, sweep, sweepAmt, swellAmt, swell);
+    } else if (type === 'fire') {
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = 3500;
+      tail.connect(lp);
+      tail = lp;
+      nodes.push(lp);
     } else if (type === 'white') {
       const lp = ctx.createBiquadFilter();
       lp.type = 'lowpass';

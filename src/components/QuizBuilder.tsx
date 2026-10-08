@@ -20,12 +20,18 @@ interface Prefs {
 const key = (deckId: string, section: string) => `${deckId}\u0000${section}`;
 
 export function QuizBuilder({ onClose, onStartBlock }: { onClose: () => void; onStartBlock: () => void }) {
-  const { decks, cards, reviews, studyingNow } = useStore();
+  const { decks, cards, reviews, studyingNow, builderInit } = useStore();
   const [prefs, setPrefs] = usePersistentState<Prefs>('quizPrefs', { types: ALL_TYPES, count: 10, mode: 'practice', weakFirst: false, asBlock: false });
   const [exam, setExam] = useState<{ questions: ExamQuestion[]; mode: Prefs['mode'] } | null>(null);
+  // Opened with a preset (e.g. "quiz my weakest sections"): apply it once.
+  useEffect(() => {
+    if (builderInit?.weakFirst !== undefined || builderInit?.count) setPrefs((p) => ({ ...p, weakFirst: builderInit.weakFirst ?? p.weakFirst, count: builderInit.count ?? p.count }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Default scope: everything you've studied plus what you're studying now.
   const [scope, setScope] = useState<Set<string>>(() => {
+    if (builderInit?.scope) return new Set(builderInit.scope);
     const s = new Set<string>();
     for (const d of decks) for (const sec of d.studied ?? []) s.add(key(d.id, sec));
     if (studyingNow) s.add(key(studyingNow.deckId, studyingNow.section));
@@ -293,13 +299,14 @@ function ExamRunner({
     if (!submitted || !allGraded || recorded.current) return;
     recorded.current = true;
     const byCard = new Map<string, boolean>();
+    const cardById = new Map(questions.map((x) => [x.card.id, x.card]));
     for (const x of questions) byCard.set(x.card.id, (byCard.get(x.card.id) ?? true) && !!responses[x.id]?.correct);
     setReviews((rv) => {
       const n = { ...rv };
       for (const [id, ok] of byCard) n[id] = schedule(rv[id], ok ? 'good' : 'again');
       return n;
     });
-    for (const ok of byCard.values()) logReview(ok);
+    for (const [id, ok] of byCard) logReview(ok, cardById.get(id));
   }, [submitted, allGraded, questions, responses, setReviews, logReview]);
 
   const where = (c: Card) => {

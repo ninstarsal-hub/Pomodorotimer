@@ -1,9 +1,9 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from 'react';
 import { usePersistentState, dayKey } from './lib/storage';
-import { parseCards, type QuizItem } from './lib/quiz';
+import { deckCards, type QuizItem } from './lib/quiz';
 import type { SoundParams } from './lib/audio';
 import { SOUND_PRESETS } from './lib/audio';
-import type { Card, Deck, Distraction, ReviewState, Session, Settings, Task } from './lib/types';
+import type { Card, Deck, Distraction, Exam, ReviewState, Session, Settings, Task } from './lib/types';
 
 export const DEFAULT_SETTINGS: Settings = {
   focusMin: 25,
@@ -22,7 +22,17 @@ export const DEFAULT_SETTINGS: Settings = {
   background: { kind: 'preset', preset: 'aurora', url: '' },
   dim: 0.55,
   blur: 0,
+  dailyGoalMin: 60,
+  weeklyGoalMin: 300,
 };
+
+export const sectionKey = (deckId: string, section: string) => `${deckId}\u0000${section}`;
+
+export interface BuilderInit {
+  scope?: string[];
+  weakFirst?: boolean;
+  count?: number;
+}
 
 export interface StudyPointer {
   deckId: string;
@@ -42,6 +52,8 @@ export interface QuizRequest {
 }
 
 export type ReviewLog = Record<string, { total: number; correct: number }>;
+/** Per day: how many questions were answered from each section (key = sectionKey). */
+export type SectionLog = Record<string, Record<string, number>>;
 
 function useStoreValue() {
   const [settings, setSettings] = usePersistentState<Settings>('settings', DEFAULT_SETTINGS);
@@ -58,10 +70,14 @@ function useStoreValue() {
   const [soundPlaying, setSoundPlaying] = useState(false);
   const [nowPlaying, setNowPlaying] = useState<{ name: string; embed: string } | null>(null);
   const [quiz, setQuiz] = useState<QuizRequest | null>(null);
-  const [builderOpen, setBuilderOpen] = useState(false);
+  const [builderInit, setBuilderInit] = useState<BuilderInit | null>(null);
+  const builderOpen = builderInit !== null;
+  const setBuilderOpen = (open: boolean, init: BuilderInit = {}) => setBuilderInit(open ? init : null);
+  const [exams, setExams] = usePersistentState<Exam[]>('exams', []);
+  const [sectionLog, setSectionLog] = usePersistentState<SectionLog>('sectionLog', {});
   const [uploadVersion, setUploadVersion] = useState(0);
 
-  const cards = useMemo<Card[]>(() => decks.flatMap(parseCards), [decks]);
+  const cards = useMemo<Card[]>(() => decks.flatMap(deckCards), [decks]);
 
   /* ---------- sections: what you're studying now, and what you've already covered ---------- */
   const [studyingNow, setStudyingNowRaw] = usePersistentState<StudyPointer | null>('studyingNow', null);
@@ -71,14 +87,18 @@ function useStoreValue() {
   const setStudyingNow = (ptr: StudyPointer | null) => {
     setStudyingNowRaw(ptr);
     // Whatever you're studying now counts as studied from here on.
-    if (ptr) setDecks((ds) => ds.map((d) => (d.id === ptr.deckId && !(d.studied ?? []).includes(ptr.section) ? { ...d, studied: [...(d.studied ?? []), ptr.section] } : d)));
+    if (ptr) setStudied(ptr.deckId, ptr.section, true);
   };
   const setStudied = (deckId: string, section: string, studied: boolean) =>
     setDecks((ds) =>
       ds.map((d) => {
         if (d.id !== deckId) return d;
         const list = (d.studied ?? []).filter((x) => x !== section);
-        return { ...d, studied: studied ? [...list, section] : list };
+        if (studied && d.studied?.includes(section)) return d;
+        const studiedOn = { ...d.studiedOn };
+        if (studied) studiedOn[section] = dayKey();
+        else delete studiedOn[section];
+        return { ...d, studied: studied ? [...list, section] : list, studiedOn };
       }),
     );
 
@@ -94,11 +114,16 @@ function useStoreValue() {
   const activeTask = tasks.find((t) => t.id === activeTaskId) ?? null;
   const today = dayKey();
 
-  const logReview = (correct: boolean) =>
+  const logReview = (correct: boolean, card?: Card) => {
     setReviewLog((log) => {
       const d = log[today] ?? { total: 0, correct: 0 };
       return { ...log, [today]: { total: d.total + 1, correct: d.correct + (correct ? 1 : 0) } };
     });
+    if (card) {
+      const k = sectionKey(card.deckId, card.section);
+      setSectionLog((log) => ({ ...log, [today]: { ...log[today], [k]: (log[today]?.[k] ?? 0) + 1 } }));
+    }
+  };
 
   return {
     settings,
@@ -132,7 +157,11 @@ function useStoreValue() {
     quiz,
     setQuiz,
     builderOpen,
+    builderInit,
     setBuilderOpen,
+    exams,
+    setExams,
+    sectionLog,
     uploadVersion,
     setUploadVersion,
     cards,

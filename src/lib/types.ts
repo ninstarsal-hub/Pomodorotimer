@@ -18,6 +18,10 @@ export interface Settings {
   background: BackgroundSetting;
   dim: number;
   blur: number;
+  /** Daily focus goal in minutes (0 = no goal). Streaks count days that hit it. */
+  dailyGoalMin: number;
+  /** Weekly focus goal in minutes (0 = no goal). */
+  weeklyGoalMin: number;
 }
 
 export interface BackgroundSetting {
@@ -59,6 +63,22 @@ export interface Deck {
   createdAt: number;
   /** Section titles the student has already studied; only these (plus the current one) are quizzed. */
   studied?: string[];
+  /** Day (YYYY-MM-DD) each section was first marked studied. */
+  studiedOn?: Record<string, string>;
+  /** Edits to generated questions, by card id; null = deleted. */
+  edits?: Record<string, { front: string; back: string } | null>;
+  /** Questions the student wrote themselves. */
+  custom?: Card[];
+}
+
+export interface Exam {
+  id: string;
+  title: string;
+  /** YYYY-MM-DD */
+  date: string;
+  deckId: string;
+  /** Sections the exam covers ([] = all sections of the notes). */
+  sections: string[];
 }
 
 export interface Card {
@@ -70,6 +90,8 @@ export interface Card {
   auto?: boolean;
   /** The section (heading) of the notes this card came from; '' before the first heading. */
   section: string;
+  /** Changed by the student (edited or self-written). */
+  edited?: boolean;
 }
 
 export interface ReviewState {
