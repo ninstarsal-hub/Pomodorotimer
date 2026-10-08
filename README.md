@@ -34,6 +34,13 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - Spaced repetition: cards you get wrong come back soon, and cards you know come back further apart
 - A Strategies guide covering active recall, spacing, interleaving, elaboration, the Feynman technique, dual coding and more
 
+**Math & problem-solving courses**
+- **Math display:** write math between dollar signs (`$\frac{x^2}{2}$`, `$$\int_0^1 x\,dx$$`) in notes, problems and answers, and it renders properly
+- **Smart answer checking:** `0.5` = `1/2` = `50%`, `2(x+0.5)` = `2x+1`, `3.14` ≈ π, `x = 2, 3` in any order, `±` answers, and simple LaTeX in either the answer or the response
+- **Practice problems:** log textbook or worksheet problems (`1-29 odd, 34, 4a-4d`), mark each right, wrong or "needed help", and optionally add the problem text and a final answer to check automatically. Missed problems come back to re-solve after 1, 3 and 7 days until you get them right three times in a row
+- **Mixed practice:** problems drawn at random across sets, so you practise choosing the right method
+- **Mistake log:** tag why you missed a problem (concept, setup, algebra, careless). Progress shows where your points go, with a tip for your most common mistake type
+
 **Plan**
 - **Exam planner:** add an exam date and the sections it covers. Stillpoint schedules when to learn each new section and when to review each one, at about 14, 7 and 3 days before the exam plus a final review the day before. The plan is rebuilt every day, so a missed day just rolls forward instead of piling up
 - **Exam countdown:** a small box at the top shows days until your next exam and how ready you are. Arrows step through upcoming exams, clicking it lists them all, and you can hide it (and bring it back from the calendar icon)

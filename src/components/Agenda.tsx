@@ -1,11 +1,13 @@
-import { CalendarDays, RotateCcw } from 'lucide-react';
+import { CalendarDays, Repeat, RotateCcw } from 'lucide-react';
+import { useDueProblems } from './PracticePanel';
 import { useStore } from '../store';
 import { buildQuiz } from '../lib/quiz';
 import { PlanItemRow, dueSummary, usePlanActions, usePlans } from './PlanPanel';
 
 /** Main-screen "what to do today": due reviews + today's exam-plan tasks. */
 export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
-  const { unlocked, reviews, setQuiz } = useStore();
+  const { unlocked, reviews, setQuiz, setPracticeRun } = useStore();
+  const dueProblems = useDueProblems();
   const plans = usePlans();
   const { isDone } = usePlanActions();
   const { due, minutes } = dueSummary(unlocked, reviews);
@@ -13,7 +15,7 @@ export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
   const todays = plans.flatMap((p) => p.days[0].map((it) => ({ it, plan: p })));
   const open = todays.filter((t) => !isDone(t.it));
   const next = plans[0];
-  if (!due.length && !next) return null;
+  if (!due.length && !next && !dueProblems.length) return null;
 
   return (
     <div className="agenda fade-zen">
@@ -31,6 +33,17 @@ export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
             }}
           >
             Review {Math.min(10, due.length)}
+          </button>
+        </div>
+      )}
+      {dueProblems.length > 0 && (
+        <div className="agenda-row">
+          <Repeat size={14} className="accent" />
+          <span className="grow">
+            <strong>{dueProblems.length}</strong> missed problem{dueProblems.length === 1 ? '' : 's'} to re-solve
+          </span>
+          <button className="btn small" onClick={() => setPracticeRun({ refs: dueProblems, title: 'Re-solve' })}>
+            Re-solve
           </button>
         </div>
       )}

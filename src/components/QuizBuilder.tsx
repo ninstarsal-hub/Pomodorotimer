@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { MathText } from './MathText';
 import { ArrowLeft, ArrowRight, Check, RotateCcw, X } from 'lucide-react';
 import { useStore } from '../store';
 import { usePersistentState } from '../lib/storage';
@@ -365,8 +366,8 @@ function ExamRunner({
                   <div className="muted small">
                     {QTYPE_LABEL[x.type]} · {where(x.card)}
                   </div>
-                  <div>{x.prompt}</div>
-                  {x.detail && <div className="muted small">“{x.detail}”</div>}
+                  <MathText as="div" text={x.prompt} />
+                  {x.detail && <MathText as="div" className="muted small" text={x.detail} />}
                   <div className="small">
                     <span className="muted">You: </span>
                     {res?.given || <em className="muted">no answer</em>}
@@ -374,7 +375,7 @@ function ExamRunner({
                   {!res?.correct && (
                     <div className="small">
                       <span className="muted">Answer: </span>
-                      {x.answer}
+                      <MathText text={x.answer} />
                       {x.explanation && <span className="muted"> — {x.explanation}</span>}
                     </div>
                   )}
@@ -447,7 +448,7 @@ function ExamRunner({
             {q.type !== 'mcq' && q.type !== 'tf' && (
               <>
                 <div className="eyebrow muted">{q.type === 'explain' ? 'Model answer' : 'Answer'}</div>
-                <p>{q.answer}</p>
+                <MathText as="p" text={q.answer} />
               </>
             )}
             {q.explanation && <p className="muted small">{q.explanation}</p>}
@@ -516,8 +517,12 @@ function ExamQuestionView({
         {QTYPE_LABEL[q.type]}
         {q.lead !== QTYPE_LABEL[q.type] ? ` · ${q.lead}` : ''}
       </div>
-      <p className="q-front">{q.prompt}</p>
-      {q.detail && <blockquote className="q-detail">{q.detail}</blockquote>}
+      <MathText as="p" className="q-front" text={q.prompt} />
+      {q.detail && (
+        <blockquote className="q-detail">
+          <MathText text={q.detail} />
+        </blockquote>
+      )}
 
       {isChoice ? (
         <div className={`choices ${q.type === 'tf' ? 'tf' : ''}`}>
@@ -527,7 +532,7 @@ function ExamQuestionView({
             return (
               <button key={o} className={`choice ${state}`} disabled={locked} onClick={() => onAnswer(o)}>
                 {q.type === 'mcq' && <span className="choice-letter">{String.fromCharCode(65 + idx)}</span>}
-                {o}
+                <MathText text={o} />
               </button>
             );
           })}

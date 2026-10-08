@@ -2628,3 +2628,173 @@ input[type='date'] {
 .app {
   grid-template-columns: minmax(0, 1fr);
 }
+
+/* ---------- practice problems & math ---------- */
+
+.katex {
+  font-size: 1.05em;
+  color: inherit;
+}
+.katex-display {
+  margin: 0.4em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.math-preview {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px dashed var(--line-strong);
+  font-size: 14px;
+}
+.set-card strong {
+  font-weight: 500;
+}
+.problem-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pchip {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--line-strong);
+  color: var(--text-2);
+  transition: transform 0.15s, border-color 0.2s;
+}
+.pchip:hover {
+  transform: translateY(-1px);
+  border-color: var(--text-2);
+}
+.pchip.right {
+  background: color-mix(in srgb, var(--accent) 80%, transparent);
+  border-color: transparent;
+  color: #121214;
+}
+.pchip.improving {
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  color: var(--text);
+}
+.pchip.wrong {
+  background: rgba(224, 138, 138, 0.18);
+  border-color: rgba(224, 138, 138, 0.6);
+  color: var(--text);
+}
+.pchip.help {
+  background: rgba(224, 190, 120, 0.15);
+  border-color: rgba(224, 190, 120, 0.55);
+  color: var(--text);
+}
+.pchip.due {
+  border: 1.5px dashed var(--danger);
+  color: var(--text);
+}
+.pchip.is-selected {
+  outline: 1.5px solid var(--text);
+  outline-offset: 1px;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.pchip-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 1px solid var(--line-strong);
+  display: inline-block;
+}
+.pchip-dot.right {
+  background: var(--accent);
+  border-color: transparent;
+}
+.pchip-dot.wrong {
+  background: rgba(224, 138, 138, 0.5);
+  border-color: transparent;
+}
+.pchip-dot.due {
+  border: 1.5px dashed var(--danger);
+}
+.problem-edit {
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.attempt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.attempt-list li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.att.right {
+  color: var(--ok);
+}
+.att.wrong {
+  color: var(--danger);
+}
+.att.help {
+  color: #e0be78;
+}
+.problem-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.problem-label {
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1;
+}
+.result-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.result-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12.5px;
+  transition: all 0.2s;
+}
+.result-btn:hover {
+  border-color: var(--line-strong);
+}
+.result-btn.ok.is-active {
+  border-color: var(--ok);
+  background: rgba(159, 199, 154, 0.12);
+  color: var(--ok);
+}
+.result-btn.bad.is-active {
+  border-color: var(--danger);
+  background: rgba(224, 138, 138, 0.12);
+  color: var(--danger);
+}
+.result-btn.help.is-active {
+  border-color: #e0be78;
+  background: rgba(224, 190, 120, 0.12);
+  color: #e0be78;
+}

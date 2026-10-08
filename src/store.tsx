@@ -2,6 +2,7 @@ import { createContext, useContext, useMemo, useState, type ReactNode } from 're
 import { usePersistentState, dayKey } from './lib/storage';
 import { deckCards, type QuizItem } from './lib/quiz';
 import type { SoundParams } from './lib/audio';
+import type { Problem, ProblemRef, ProblemSet } from './lib/problems';
 import { SOUND_PRESETS } from './lib/audio';
 import type { Card, Deck, Distraction, Exam, ReviewState, Session, Settings, Task } from './lib/types';
 
@@ -76,6 +77,10 @@ function useStoreValue() {
   const setBuilderOpen = (open: boolean, init: BuilderInit = {}) => setBuilderInit(open ? init : null);
   const [exams, setExams] = usePersistentState<Exam[]>('exams', []);
   const [sectionLog, setSectionLog] = usePersistentState<SectionLog>('sectionLog', {});
+  const [problemSets, setProblemSets] = usePersistentState<ProblemSet[]>('problemSets', []);
+  const [practiceRun, setPracticeRun] = useState<{ refs: ProblemRef[]; title: string } | null>(null);
+  const updateProblem = (setId: string, problemId: string, fn: (p: Problem) => Problem) =>
+    setProblemSets((ss) => ss.map((set) => (set.id !== setId ? set : { ...set, problems: set.problems.map((p) => (p.id === problemId ? fn(p) : p)) })));
   const [uploadVersion, setUploadVersion] = useState(0);
 
   const cards = useMemo<Card[]>(() => decks.flatMap(deckCards), [decks]);
@@ -162,6 +167,11 @@ function useStoreValue() {
     setBuilderOpen,
     exams,
     setExams,
+    problemSets,
+    setProblemSets,
+    updateProblem,
+    practiceRun,
+    setPracticeRun,
     sectionLog,
     uploadVersion,
     setUploadVersion,

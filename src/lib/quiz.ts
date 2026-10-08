@@ -1,3 +1,4 @@
+import { mathEqual } from './mathcheck';
 import type { Card, Deck, ReviewState } from './types';
 
 /**
@@ -18,6 +19,11 @@ const STOP = new Set(
     ' ',
   ),
 );
+
+/** True if the text contains inline/display math like $x^2$ or $$\int f$$. */
+export function hasMath(s: string) {
+  return /\$\$[\s\S]+?\$\$|\$[^\s$](?:[^$]*[^\s$])?\$(?!\d)|\\\(|\\\[/.test(s);
+}
 
 export function hash(s: string) {
   let h = 2166136261;
@@ -133,14 +139,14 @@ export function sectionLabel(section: string, deck: Deck) {
 export function parseCards(deck: Deck): Card[] {
   const out: Card[] = [];
   const seen = new Set<string>();
-  const push = (kind: Card['kind'], front: string, back: string, auto = false) => {
+  const push = (kind: Card['kind'], front: string, back: string, auto = false, ask = false) => {
     front = front.trim();
     back = back.trim();
     if (!front || !back) return;
     const id = deck.id + ':' + hash(kind + front);
     if (seen.has(id)) return;
     seen.add(id);
-    out.push({ id, deckId: deck.id, kind, front, back, auto, section });
+    out.push({ id, deckId: deck.id, kind, front, back, auto, section, ...(ask ? { ask } : {}) });
   };
 
   const lines = deck.content.split(/\r?\n/);
@@ -180,7 +186,7 @@ export function parseCards(deck: Deck): Card[] {
       const next = clean(lines[i + 1] ?? '');
       const a = next.match(/^a(?:nswer)?\s*[:.]\s*(.+)$/i);
       if (a) {
-        push('qa', q[1], a[1]);
+        push('qa', q[1], a[1], false, true);
         i++;
         continue;
       }
@@ -189,12 +195,12 @@ export function parseCards(deck: Deck): Card[] {
     if (line.endsWith('?')) {
       const next = clean(lines[i + 1] ?? '');
       if (next && !next.endsWith('?') && !/^#/.test(lines[i + 1] ?? '')) {
-        push('qa', line, next.replace(/^a(?:nswer)?\s*[:.]\s*/i, ''));
+        push('qa', line, next.replace(/^a(?:nswer)?\s*[:.]\s*/i, ''), false, true);
         i++;
         continue;
       }
     }
-    // Explicit cloze: **x**, ==x==, {{x}}
+    // Explicit cloze: **x**, ==x==, {{x}} (marks inside math are left alone)
     const marks = [...line.matchAll(/\*\*(.+?)\*\*|==(.+?)==|\{\{(?:c\d*::)?(.+?)\}\}/g)];
     if (marks.length) {
       const plain = line.replace(/\*\*(.+?)\*\*|==(.+?)==|\{\{(?:c\d*::)?(.+?)\}\}/g, (_m, a, b, c) => a ?? b ?? c);
@@ -205,6 +211,8 @@ export function parseCards(deck: Deck): Card[] {
       }
       continue;
     }
+    // Lines with math ($...$) only use the explicit formats above — "=" and "-" inside equations aren't separators.
+    if (hasMath(line)) continue;
     // Term - definition / Term — definition / Term: definition
     const td = line.match(/^(.{2,60}?)\s+(?:-|–|—|=)\s+(.{4,})$/) ?? line.match(/^([^:]{2,50}):\s+(.{4,})$/);
     if (td && words(td[1]).length <= 6) {
@@ -343,6 +351,8 @@ function lev(a: string, b: string) {
 
 /** Lenient answer check: typo-tolerant for short answers, keyword overlap for long ones. */
 export function checkAnswer(given: string, expected: string): boolean {
+  const math = mathEqual(given, expected);
+  if (math !== null) return math;
   const g = norm(given);
   const e = norm(expected);
   if (!g) return false;

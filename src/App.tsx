@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, CalendarDays, ChartColumn, Headphones, Lightbulb, ListTodo, Maximize2, Minimize2, Settings as SettingsIcon, X } from 'lucide-react';
+import { BookOpen, CalendarDays, ChartColumn, PencilRuler, Headphones, Lightbulb, ListTodo, Maximize2, Minimize2, Settings as SettingsIcon, X } from 'lucide-react';
 import { useStore } from './store';
 import { usePersistentState, dayKey, fmtClock, uid } from './lib/storage';
 import { chime, engine } from './lib/audio';
@@ -23,14 +23,17 @@ import { Agenda } from './components/Agenda';
 import { PlanPanel } from './components/PlanPanel';
 import { GoalStat } from './components/GoalStat';
 import { ExamWidget } from './components/ExamWidget';
+import { PracticePanel } from './components/PracticePanel';
+import { PracticeRunner } from './components/PracticeRunner';
 
-type Panel = 'today' | 'plan' | 'sound' | 'notes' | 'stats' | 'learn' | 'settings';
+type Panel = 'today' | 'plan' | 'sound' | 'notes' | 'practice' | 'stats' | 'learn' | 'settings';
 
 const PANELS: { id: Panel; label: string; icon: typeof ListTodo }[] = [
   { id: 'today', label: 'Today', icon: ListTodo },
   { id: 'plan', label: 'Exam plan', icon: CalendarDays },
   { id: 'sound', label: 'Sound', icon: Headphones },
   { id: 'notes', label: 'Notes & Quiz', icon: BookOpen },
+  { id: 'practice', label: 'Practice problems', icon: PencilRuler },
   { id: 'stats', label: 'Progress', icon: ChartColumn },
   { id: 'learn', label: 'Strategies', icon: Lightbulb },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
@@ -244,7 +247,7 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement;
       if (el.closest('input, textarea, select, [contenteditable="true"]') || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (store.quiz || store.builderOpen || reflectionId || recallOpen) return;
+      if (store.quiz || store.builderOpen || store.practiceRun || reflectionId || recallOpen) return;
       if (e.code === 'Space') {
         e.preventDefault();
         if (timer.running) pause();
@@ -259,7 +262,7 @@ export default function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [timer.running, start, pause, reset, finishPhase, store.quiz, store.builderOpen, reflectionId, recallOpen]);
+  }, [timer.running, start, pause, reset, finishPhase, store.quiz, store.builderOpen, store.practiceRun, reflectionId, recallOpen]);
 
   const todayMinutes = sessions.filter((s) => s.day === store.today).reduce((a, s) => a + s.minutes, 0);
   const openTasks = tasks.filter((t) => !t.done && t.day === store.today);
@@ -350,6 +353,7 @@ export default function App() {
               {panel === 'plan' && <PlanPanel />}
               {panel === 'sound' && <SoundPanel />}
               {panel === 'notes' && <NotesPanel />}
+              {panel === 'practice' && <PracticePanel />}
               {panel === 'stats' && <StatsPanel />}
               {panel === 'learn' && <LearnPanel />}
               {panel === 'settings' && <SettingsPanel />}
@@ -359,6 +363,7 @@ export default function App() {
       </aside>
       {panel && <div className="scrim" onClick={() => setPanel(null)} />}
 
+      {store.practiceRun && <PracticeRunner key={store.practiceRun.refs.map((r) => r.problemId).join('|')} />}
       {store.builderOpen && (
         <QuizBuilder
           onClose={() => store.setBuilderOpen(false)}

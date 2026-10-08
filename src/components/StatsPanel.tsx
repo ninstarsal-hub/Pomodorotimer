@@ -3,6 +3,7 @@ import { Target } from 'lucide-react';
 import { useStore, sectionKey } from '../store';
 import { dayKey, fmtMinutes } from '../lib/storage';
 import { deckSections, sectionLabel } from '../lib/quiz';
+import { MISTAKES } from '../lib/problems';
 
 export function StatsPanel() {
   const { sessions, reviewLog, tasks, today, settings } = useStore();
@@ -74,6 +75,8 @@ export function StatsPanel() {
       )}
 
       <MasteryCard />
+
+      <MistakeLog />
 
       <section className="card">
         <div className="row between">
@@ -239,6 +242,92 @@ function MasteryCard() {
       <button className="btn primary" onClick={() => setBuilderOpen(true, { scope: weakest.map((w) => w.key), weakFirst: true, count: 10 })}>
         <Target size={14} /> Quiz my {weakest.length === 1 ? 'weakest section' : `${weakest.length} weakest sections`}
       </button>
+    </section>
+  );
+}
+
+/** Why practice problems go wrong, over the last 30 days. */
+function MistakeLog() {
+  const { problemSets } = useStore();
+  const data = useMemo(() => {
+    const since = Date.now() - 30 * 86_400_000;
+    const byType = new Map<string, number>();
+    const bySet = new Map<string, number>();
+    const recent: { label: string; set: string; at: number; mistake?: string; note?: string }[] = [];
+    let attempts = 0;
+    let misses = 0;
+    for (const set of problemSets)
+      for (const p of set.problems)
+        for (const a of p.attempts) {
+          if (a.at < since) continue;
+          attempts++;
+          if (a.result === 'right') continue;
+          misses++;
+          byType.set(a.mistake ?? 'untagged', (byType.get(a.mistake ?? 'untagged') ?? 0) + 1);
+          bySet.set(set.title, (bySet.get(set.title) ?? 0) + 1);
+          recent.push({ label: p.label, set: set.title, at: a.at, mistake: a.mistake, note: a.note });
+        }
+    return { byType, bySet, recent: recent.sort((a, b) => b.at - a.at).slice(0, 5), attempts, misses };
+  }, [problemSets]);
+
+  if (!data.attempts) return null;
+  const types = [...MISTAKES.map((m) => ({ id: m.id, label: m.label })), { id: 'untagged', label: 'Not tagged' }].filter((t) => data.byType.get(t.id));
+  const max = Math.max(1, ...data.byType.values());
+  const top = types.filter((t) => t.id !== 'untagged').sort((a, b) => (data.byType.get(b.id) ?? 0) - (data.byType.get(a.id) ?? 0))[0];
+  const tagged = [...data.byType.entries()].filter(([k]) => k !== 'untagged').reduce((a, [, v]) => a + v, 0);
+  const tips: Record<string, string> = {
+    concept: 'Go back to the explanation or a worked example before doing more problems — practice won’t fix a gap in understanding.',
+    setup: 'Before calculating, write down what’s given, what’s asked and which method applies. Compare your setup to a worked example.',
+    algebra: 'Slow down on the working: one step per line, and check each line before moving on.',
+    careless: 'Re-read the question after answering and do a quick sanity check (units, signs, does the size make sense?).',
+    other: 'Look at your notes on these — is it timing? Try a timed mixed set to practise under pressure.',
+  };
+
+  return (
+    <section className="card">
+      <div className="row between">
+        <div className="eyebrow">Mistake log · last 30 days</div>
+        <span className="muted small">
+          {data.misses} missed of {data.attempts}
+        </span>
+      </div>
+      {data.misses === 0 ? (
+        <p className="muted small">No missed problems — nice. Try harder problems or mixed practice.</p>
+      ) : (
+        <>
+          {top && tagged > 0 && (
+            <p className="small">
+              <strong>{Math.round(((data.byType.get(top.id) ?? 0) / tagged) * 100)}%</strong> of your tagged misses are <strong>{top.label.toLowerCase()}</strong> mistakes. <span className="muted">{tips[top.id]}</span>
+            </p>
+          )}
+          <ul className="subject-list wide">
+            {types.map((t) => (
+              <li key={t.id}>
+                <span>{t.label}</span>
+                <span className="subject-bar">
+                  <span style={{ width: `${((data.byType.get(t.id) ?? 0) / max) * 100}%` }} />
+                </span>
+                <span className="muted small">{data.byType.get(t.id)}</span>
+              </li>
+            ))}
+          </ul>
+          {data.recent.some((r) => r.note) && (
+            <ul className="session-list">
+              {data.recent
+                .filter((r) => r.note)
+                .map((r, k) => (
+                  <li key={k} className="small">
+                    <span className="muted">
+                      {r.set} {r.label}
+                      {r.mistake ? ` · ${r.mistake}` : ''}:
+                    </span>{' '}
+                    “{r.note}”
+                  </li>
+                ))}
+            </ul>
+          )}
+        </>
+      )}
     </section>
   );
 }

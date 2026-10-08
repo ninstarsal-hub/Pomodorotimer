@@ -7,7 +7,7 @@
  * recognise the exact sentence from your notes.
  */
 import type { Card, ReviewState } from './types';
-import { shuffle } from './quiz';
+import { hasMath, shuffle } from './quiz';
 
 export type QType = 'mcq' | 'tf' | 'short' | 'blank' | 'explain';
 
@@ -78,11 +78,13 @@ function eligibleTypes(card: Card, ctx: Ctx): QType[] {
   const t: QType[] = [];
   if (card.kind === 'prompt') return ['explain'];
   if (card.kind === 'qa') {
+    const asked = card.ask || isQuestion(card.front);
+    const mathy = hasMath(card.front) || hasMath(card.back);
     t.push('short');
-    if (!isQuestion(card.front)) t.push('blank');
+    if (!asked && !mathy) t.push('blank');
     if (ctx.qaBacks.length >= 4 || ctx.qaFronts.length >= 4) t.push('mcq');
     if (ctx.qaBacks.length >= 2) t.push('tf');
-    if (card.back.split(/\s+/).length >= 5) t.push('explain');
+    if (!mathy && card.back.split(/\s+/).length >= 5) t.push('explain');
   } else {
     t.push('blank');
     if (ctx.clozeAnswers.length + ctx.qaFronts.length >= 4) t.push('mcq');
@@ -100,7 +102,7 @@ interface Ctx {
 function makeCtx(cards: Card[]): Ctx {
   return {
     qaBacks: cards.filter((c) => c.kind === 'qa').map((c) => c.back),
-    qaFronts: cards.filter((c) => c.kind === 'qa' && !isQuestion(c.front)).map((c) => c.front),
+    qaFronts: cards.filter((c) => c.kind === 'qa' && !c.ask && !isQuestion(c.front)).map((c) => c.front),
     clozeAnswers: cards.filter((c) => c.kind === 'cloze').map((c) => c.back),
   };
 }
@@ -115,8 +117,10 @@ function writeQuestion(card: Card, type: QType, ctx: Ctx, deckCtx: Ctx, n: numbe
   const near = (key: keyof Ctx) => (deckCtx[key].length >= 4 ? deckCtx[key] : [...deckCtx[key], ...ctx[key]]);
 
   if (card.kind === 'qa') {
-    const asked = isQuestion(card.front);
-    const reverse = !asked && Math.random() < 0.5;
+    const asked = card.ask || isQuestion(card.front);
+    // Formulas only make sense asked forward ("derivative of sin x = ?"), not reversed.
+    const mathy = hasMath(card.front) || hasMath(card.back);
+    const reverse = !asked && !mathy && Math.random() < 0.5;
     switch (type) {
       case 'mcq': {
         if (reverse && near('qaFronts').length >= 4) {
@@ -133,7 +137,7 @@ function writeQuestion(card: Card, type: QType, ctx: Ctx, deckCtx: Ctx, n: numbe
         if (opts.length < 3) return null;
         return {
           id, card, type, lead: 'Choose the best answer',
-          prompt: asked ? card.front : pick([`Which of the following best describes ${term}?`, `What best defines “${term}”?`, `Which statement about ${term} is correct?`]),
+          prompt: asked ? card.front : mathy ? pick([`Which of these is ${term}?`, `${term} = ?`]) : pick([`Which of the following best describes ${term}?`, `What best defines “${term}”?`, `Which statement about ${term} is correct?`]),
           options: shuffle([def, ...opts]), answer: def,
         };
       }
@@ -144,7 +148,7 @@ function writeQuestion(card: Card, type: QType, ctx: Ctx, deckCtx: Ctx, n: numbe
         const shown = truth ? def : wrong;
         return {
           id, card, type, lead: 'True or false?',
-          prompt: asked ? `Is this a correct answer to: “${card.front}”` : pick([`This correctly describes ${term}:`, `${term} can be described as:`, `The following is true of ${term}:`]),
+          prompt: asked ? `Is this a correct answer to: ${card.front}` : mathy ? `True or false: ${term} is` : pick([`This correctly describes ${term}:`, `${term} can be described as:`, `The following is true of ${term}:`]),
           detail: shown, options: ['True', 'False'], answer: truth ? 'True' : 'False',
           explanation: truth ? undefined : `Correct: ${def}`,
         };
@@ -159,7 +163,7 @@ function writeQuestion(card: Card, type: QType, ctx: Ctx, deckCtx: Ctx, n: numbe
         }
         return {
           id, card, type, lead: 'Short answer',
-          prompt: asked ? card.front : pick([`Define ${term}.`, `What does “${term}” refer to?`, `In a sentence, what does “${term}” mean?`, `Briefly describe ${term}.`]),
+          prompt: asked ? card.front : mathy ? pick([`What is ${term}?`, `${term} = ?`, `Write down ${term}.`]) : pick([`Define ${term}.`, `What does “${term}” refer to?`, `In a sentence, what does “${term}” mean?`, `Briefly describe ${term}.`]),
           answer: def,
         };
       }

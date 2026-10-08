@@ -94,6 +94,8 @@ export interface Card {
   section: string;
   /** Changed by the student (edited or self-written). */
   edited?: boolean;
+  /** The front is a question/instruction to answer as written (from Q:/A: or a "?" line). */
+  ask?: boolean;
 }
 
 export interface ReviewState {

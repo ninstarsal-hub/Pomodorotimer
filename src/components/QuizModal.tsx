@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { MathText } from './MathText';
 import { Check, X } from 'lucide-react';
 import { useStore, type QuizRequest } from '../store';
 import { checkAnswer, deckSections, schedule, sectionLabel, type Grade, type QuizItem } from '../lib/quiz';
@@ -77,9 +78,9 @@ export function QuizModal({ request, onClose }: { request: QuizRequest; onClose:
                     .filter((r) => !r.correct)
                     .map((r) => (
                       <li key={r.item.card.id}>
-                        <span className="muted">{r.item.card.front}</span>
+                        <MathText className="muted" text={r.item.card.front} />
                         <br />
-                        {r.item.card.back}
+                        <MathText text={r.item.card.back} />
                       </li>
                     ))}
                 </ul>
@@ -119,7 +120,7 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
       <div className="eyebrow muted">
         {prompt}
       </div>
-      <p className="q-front">{card.front}</p>
+      <MathText as="p" className="q-front" text={card.front} />
 
       {item.type === 'choice' && (
         <div className="choices">
@@ -135,7 +136,7 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
                   setRevealed(true);
                 }}
               >
-                {o}
+                <MathText text={o} />
               </button>
             );
           })}
@@ -169,7 +170,7 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
             <>
               {auto !== null && <div className={`verdict ${auto ? 'ok' : 'bad'}`}>{auto ? <><Check size={14} /> Looks right</> : <><X size={14} /> Not quite</>}</div>}
               <div className="eyebrow muted">Answer</div>
-              <p>{card.back}</p>
+              <MathText as="p" text={card.back} />
             </>
           )}
           {item.type === 'choice' ? (

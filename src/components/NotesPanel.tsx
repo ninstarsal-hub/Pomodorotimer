@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { MathText } from './MathText';
 import { Brain, ChevronDown, FileUp, ListChecks, Pencil, Plus, Shuffle, Trash2 } from 'lucide-react';
 import { useStore } from '../store';
 import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
@@ -227,6 +228,9 @@ function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
             <code># Heading</code> → “explain it in your own words” prompt
           </li>
           <li>Instructions like “Read chapter 4” or “Due Friday” are skipped automatically.</li>
+          <li>
+            Math: wrap it in dollar signs, e.g. <code>Derivative of $\sin x$ :: $\cos x$</code> or <code>$$\int_0^1 x^2\,dx$$</code>
+          </li>
         </ul>
       </details>
       <label className="toggle-row">
@@ -360,8 +364,10 @@ function QuestionEditor({ deck, cards, update }: { deck: Deck; cards: Card[]; up
                   <Trash2 size={12} />
                 </button>
               </span>
-              <div>{c.front}</div>
-              <div className="muted small">→ {c.back.length > 160 ? c.back.slice(0, 160) + '…' : c.back}</div>
+              <MathText as="div" text={c.front} />
+              <div className="muted small">
+                → <MathText text={c.back.length > 160 && !c.back.includes('$') ? c.back.slice(0, 160) + '…' : c.back} />
+              </div>
             </li>
           ),
         )}
