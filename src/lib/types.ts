@@ -24,6 +24,9 @@ export interface Settings {
   weeklyGoalMin: number;
   /** Show the next-exam countdown in the top bar. */
   showExamWidget: boolean;
+  /** Break beats style to start automatically when a break begins ('off' = never). */
+  breakBeats: 'off' | 'lofi' | 'bounce' | 'house';
+  beatVolume: number;
 }
 
 export interface BackgroundSetting {

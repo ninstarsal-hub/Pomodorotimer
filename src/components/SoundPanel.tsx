@@ -2,16 +2,15 @@ import { useEffect, useState } from 'react';
 import { Pause, Play, Plus, Trash2, Volume2 } from 'lucide-react';
 import { useStore } from '../store';
 import { engine, SOUND_PRESETS, type NoiseType, type PadKey, type SoundParams } from '../lib/audio';
-import { CURATED_MEDIA, toEmbed } from '../lib/content';
+import { BREAK_MEDIA, CURATED_MEDIA, toEmbed } from '../lib/content';
+import { BEAT_STYLES, beats } from '../lib/beats';
+import { BeatPicker } from './BreakCard';
 import { uid } from '../lib/storage';
 
 export function SoundPanel() {
   const { soundParams, setSoundParams, soundPresetId, setSoundPresetId, soundPlaying, setSoundPlaying, customMedia, setCustomMedia, nowPlaying, setNowPlaying, settings, setSettings } =
     useStore();
   const [advanced, setAdvanced] = useState(false);
-  const [linkName, setLinkName] = useState('');
-  const [linkUrl, setLinkUrl] = useState('');
-  const [linkError, setLinkError] = useState('');
 
   useEffect(() => {
     engine.update(soundParams);
@@ -46,18 +45,6 @@ export function SoundPanel() {
   const playMedia = (name: string, url: string) => {
     const embed = toEmbed(url);
     if (embed) setNowPlaying({ name, embed });
-  };
-
-  const addLink = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!toEmbed(linkUrl)) {
-      setLinkError('Paste a YouTube, Spotify or SoundCloud link.');
-      return;
-    }
-    setCustomMedia((m) => [...m, { id: uid(), name: linkName.trim() || 'My playlist', url: linkUrl.trim() }]);
-    setLinkName('');
-    setLinkUrl('');
-    setLinkError('');
   };
 
   return (
@@ -173,7 +160,7 @@ export function SoundPanel() {
               </button>
             </li>
           ))}
-          {customMedia.map((m) => (
+          {customMedia.filter((m) => m.kind !== 'break').map((m) => (
             <li key={m.id} className="row">
               <button className={`media-item grow ${nowPlaying?.name === m.name ? 'is-active' : ''}`} onClick={() => playMedia(m.name, m.url)}>
                 <Play size={14} />
@@ -188,18 +175,115 @@ export function SoundPanel() {
             </li>
           ))}
         </ul>
-        <form className="stack-sm" onSubmit={addLink}>
-          <input value={linkName} onChange={(e) => setLinkName(e.target.value)} placeholder="Name (e.g. My study playlist)" aria-label="Link name" />
-          <div className="row">
-            <input className="grow" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="YouTube / Spotify / SoundCloud link" aria-label="Link URL" />
-            <button className="btn primary" type="submit" aria-label="Add link">
-              <Plus size={16} />
-            </button>
-          </div>
-          {linkError && <p className="error small">{linkError}</p>}
-        </form>
+        <LinkForm placeholder="Name (e.g. My study playlist)" onAdd={(name, url) => setCustomMedia((m) => [...m, { id: uid(), name, url }])} />
         <p className="muted small">Spotify plays 30-second previews unless you’re logged in to Spotify in this browser.</p>
       </section>
+
+      <BreakMusic playMedia={playMedia} />
     </div>
+  );
+}
+
+function MediaRow({ name, note, url, active, onPlay, onRemove }: { name: string; note: string; url: string; active: boolean; onPlay: (name: string, url: string) => void; onRemove?: () => void }) {
+  return (
+    <li className="row">
+      <button className={`media-item grow ${active ? 'is-active' : ''}`} onClick={() => onPlay(name, url)}>
+        <Play size={14} />
+        <span>
+          <strong>{name}</strong>
+          <em>{note}</em>
+        </span>
+      </button>
+      {onRemove && (
+        <button className="icon-btn small" onClick={onRemove} aria-label="Remove link">
+          <Trash2 size={14} />
+        </button>
+      )}
+    </li>
+  );
+}
+
+function LinkForm({ placeholder, onAdd }: { placeholder: string; onAdd: (name: string, url: string) => void }) {
+  const [name, setName] = useState('');
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState('');
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!toEmbed(url)) {
+      setError('Paste a YouTube, Spotify or SoundCloud link.');
+      return;
+    }
+    onAdd(name.trim() || 'My playlist', url.trim());
+    setName('');
+    setUrl('');
+    setError('');
+  };
+  return (
+    <form className="stack-sm" onSubmit={submit}>
+      <input value={name} onChange={(e) => setName(e.target.value)} placeholder={placeholder} aria-label="Link name" />
+      <div className="row">
+        <input className="grow" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="YouTube / Spotify / SoundCloud link" aria-label="Link URL" />
+        <button className="btn primary" type="submit" aria-label="Add link">
+          <Plus size={16} />
+        </button>
+      </div>
+      {error && <p className="error small">{error}</p>}
+    </form>
+  );
+}
+
+function BreakMusic({ playMedia }: { playMedia: (name: string, url: string) => void }) {
+  const { settings, setSettings, customMedia, setCustomMedia, nowPlaying } = useStore();
+  const mine = customMedia.filter((m) => m.kind === 'break');
+  return (
+    <section className="card">
+      <div className="eyebrow">Break music</div>
+      <p className="muted small">Something upbeat for your breaks — lyrics welcome here. Break beats are made live in your browser, so they’re free, endless and work offline.</p>
+      <BeatPicker />
+      <label className="slider-row">
+        <Volume2 size={16} className="muted" />
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={settings.beatVolume}
+          onChange={(e) => {
+            const v = Number(e.target.value);
+            beats.setVolume(v);
+            setSettings((s) => ({ ...s, beatVolume: v }));
+          }}
+          aria-label="Break beats volume"
+        />
+      </label>
+      <label className="select-row">
+        <span>Auto-play on breaks</span>
+        <select value={settings.breakBeats} onChange={(e) => setSettings((s) => ({ ...s, breakBeats: e.target.value as typeof s.breakBeats }))} aria-label="Auto-play break beats">
+          <option value="off">Off</option>
+          {BEAT_STYLES.map((b) => (
+            <option key={b.id} value={b.id}>
+              {b.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <p className="muted small">Break beats stop by themselves when your next focus block starts.</p>
+      <ul className="media-list">
+        {BREAK_MEDIA.map((m) => (
+          <MediaRow key={m.id} name={m.name} note={m.note} url={m.url} active={nowPlaying?.name === m.name} onPlay={playMedia} />
+        ))}
+        {mine.map((m) => (
+          <MediaRow key={m.id} name={m.name} note="Your break link" url={m.url} active={nowPlaying?.name === m.name} onPlay={playMedia} onRemove={() => setCustomMedia((ms) => ms.filter((x) => x.id !== m.id))} />
+        ))}
+      </ul>
+      <LinkForm placeholder="Name (e.g. My hype playlist)" onAdd={(name, url) => setCustomMedia((m) => [...m, { id: uid(), name, url, kind: 'break' }])} />
+      <details className="research">
+        <summary>Why music on breaks?</summary>
+        <p>
+          Listening to music you enjoy raises mood and arousal, and that lift carries into the next task (the “arousal–mood” account of the so-called Mozart effect). On breaks there’s no reading to compete with, so songs with lyrics are fine — just
+          switch back to instrumental audio when you focus again.
+        </p>
+      </details>
+    </section>
   );
 }

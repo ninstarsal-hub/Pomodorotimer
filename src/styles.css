@@ -742,6 +742,178 @@ input[type='range']::-moz-range-thumb {
   transform: scale(0.8);
 }
 
+.break-card {
+  width: min(460px, 100%);
+}
+.break-head {
+  align-items: center;
+}
+.break-head .link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: center;
+}
+.break-card .break-why {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
+  margin: 2px 0 10px;
+}
+.break-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+.break-tools .chip,
+.beat-row .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.beat-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 6px;
+}
+.card .beat-picker {
+  align-items: flex-start;
+}
+.beat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 10px;
+}
+.eq i {
+  width: 2px;
+  height: 100%;
+  background: currentColor;
+  border-radius: 1px;
+  animation: eq 0.9s ease-in-out infinite;
+}
+.eq i:nth-child(2) {
+  animation-delay: -0.3s;
+}
+.eq i:nth-child(3) {
+  animation-delay: -0.6s;
+}
+@keyframes eq {
+  0%,
+  100% {
+    transform: scaleY(0.3);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.doodle {
+  margin: 10px 0 8px;
+}
+/* Make room for the doodle pad: shrink the dial while it's open. */
+.timer:has(.doodle) .dial {
+  width: min(240px, 24vh);
+  min-width: 160px;
+}
+.timer:has(.doodle) .dial-time {
+  font-size: clamp(40px, 6vh, 64px);
+}
+.doodle-canvas-wrap {
+  position: relative;
+}
+.doodle-canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line);
+  cursor: crosshair;
+  touch-action: none;
+}
+.doodle-hint {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-family: var(--serif);
+  font-size: 18px;
+  font-style: italic;
+  pointer-events: none;
+}
+.doodle-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.doodle-bar .row {
+  gap: 6px;
+  align-items: center;
+}
+.ink {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  outline: 1px solid var(--line);
+}
+.ink.is-active {
+  border-color: var(--bg, #0b0b0b);
+  outline: 2px solid var(--text-2);
+}
+.ink-size {
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+.ink-size i {
+  display: block;
+  border-radius: 50%;
+  background: var(--text-2);
+}
+.ink-size.is-active {
+  border-color: var(--line-strong);
+}
+
+.break-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13px;
+}
+.break-list li > span:not(.tag),
+.break-list li > em {
+  display: block;
+  color: var(--text-2);
+  margin-top: 2px;
+}
+.break-list li > em {
+  color: var(--muted);
+  font-size: 12px;
+}
+.break-list .tag {
+  margin-left: 8px;
+}
+
 /* ---------- footer parking ---------- */
 
 .parking {

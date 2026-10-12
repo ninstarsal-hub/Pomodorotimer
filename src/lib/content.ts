@@ -69,14 +69,50 @@ export function toEmbed(url: string): string | null {
   return null;
 }
 
-export const BREAK_IDEAS = [
-  { title: 'Look far away', body: '20-20-20: look at something ~20 feet away for 20 seconds. Your eyes have been locked at screen distance.' },
-  { title: 'Move', body: 'Stand up, stretch your hips and shoulders, or walk a lap. Light movement boosts alertness for the next block.' },
-  { title: 'Hydrate', body: 'Refill your water. Even mild dehydration measurably dulls attention.' },
-  { title: 'Box breathing', body: 'Inhale 4 · hold 4 · exhale 4 · hold 4. Four rounds lowers arousal without making you sleepy.', breathe: true },
-  { title: 'Rest your mind', body: 'Close your eyes and do nothing for a minute. “Wakeful rest” right after learning helps memories consolidate.' },
-  { title: 'Avoid the feed', body: 'Skip social media this break — it hijacks the same attention you need to come back to.' },
-  { title: 'Teach it back', body: 'Say out loud, as if to a friend, the one idea you just worked on. Gaps become obvious fast.' },
+export type BreakTool = 'breathe' | 'doodle' | 'music';
+
+export interface BreakIdea {
+  title: string;
+  body: string;
+  /** The research behind it, in one line. */
+  why?: string;
+  tool?: BreakTool;
+  /** Only suggested on long breaks (needs more than a few minutes). */
+  long?: boolean;
+}
+
+export const BREAK_IDEAS: BreakIdea[] = [
+  { title: 'Look far away', body: '20-20-20: look at something ~20 feet away for 20 seconds. Your eyes have been locked at screen distance.', why: 'Recommended by optometrists to relax the focusing muscles and reduce digital eye strain.' },
+  { title: 'Move', body: 'Stand up, stretch your hips and shoulders, or walk a lap. Light movement boosts alertness for the next block.', why: 'Breaking up sitting with light activity improves alertness and mood compared with staying seated.' },
+  { title: 'Hydrate', body: 'Refill your water. Even mild dehydration measurably dulls attention.', why: 'Losing ~1–2% of body water is linked to worse attention and mood in studies of young adults.' },
+  { title: 'Box breathing', body: 'Inhale 4 · hold 4 · exhale 4 · hold 4. Four rounds lowers arousal without making you sleepy.', why: 'Slow, paced breathing calms the stress response; a 2023 Stanford study found 5 minutes of breathwork a day improved mood.', tool: 'breathe' },
+  { title: 'Rest your mind', body: 'Close your eyes and do nothing for a minute. “Wakeful rest” right after learning helps memories consolidate.', why: 'People who rested quietly for 10 minutes after learning remembered more a week later (Dewar et al., 2012).' },
+  { title: 'Avoid the feed', body: 'Skip social media this break — it hijacks the same attention you need to come back to.', why: 'Phone breaks left people less efficient afterwards than other kinds of breaks (Kang & Kurtzberg, 2019).' },
+  { title: 'Teach it back', body: 'Say out loud, as if to a friend, the one idea you just worked on. Gaps become obvious fast.', why: 'Explaining to someone else (the “protégé effect”) strengthens understanding more than re-reading.' },
+  { title: 'Doodle', body: 'Open the doodle pad below and draw anything — shapes, patterns, a diagram of what you just learned. No skill needed.', why: 'Doodlers recalled 29% more of what they’d heard (Andrade, 2010), and 45 minutes of free art-making lowered cortisol in most people (Kaimal et al., 2016).', tool: 'doodle' },
+  { title: 'Draw what you learned', body: 'Sketch the last topic from memory as a diagram, flowchart or mind map. Then glance at your notes to check.', why: 'Drawing information produces better recall than writing it out — the “drawing effect” (Wammes et al., 2016).', tool: 'doodle' },
+  { title: 'Go green', body: 'Step outside, look at trees or the sky, or at least look out a window at something natural.', why: 'Just 40 seconds looking at a green roof improved attention afterwards vs. a concrete roof (Lee et al., 2015); nature restores directed attention.' },
+  { title: 'Exercise snack', body: '20 jumping jacks, 15 squats or a flight of stairs — just enough to get your heart rate up.', why: 'A short bout of moderate exercise improves attention and executive function for a while afterwards (Chang et al., 2012 meta-analysis).' },
+  { title: 'Dance to one song', body: 'Put on a song you love (or the break beats below) and move. Silly is fine.', why: 'Music you enjoy lifts mood and arousal, which carries over into better performance (Thompson et al., 2001).', tool: 'music' },
+  { title: 'Brain dump', body: 'Write down whatever is nagging you — worries, to-dos, random thoughts — for two minutes. Then let it go.', why: 'Writing out worries for 10 minutes before an exam raised anxious students’ scores (Ramirez & Beilock, 2011).' },
+  { title: 'Talk to someone', body: 'Have a quick chat with a friend, roommate or family member — in person or a call, not a feed.', why: 'Short social micro-breaks are linked to more energy at work (Fritz et al., 2011).' },
+  { title: 'Tense & release', body: 'Squeeze your fists, shoulders, then face for 5 seconds each, and let go. Notice the difference.', why: 'Progressive muscle relaxation reliably lowers stress and anxiety.' },
+  { title: 'Power nap', body: 'Lie down for 10–20 minutes with an alarm set. Keep it short so you don’t wake up groggy.', why: 'A 10-minute nap improved alertness and performance right away, without the grogginess of longer naps (Brooks & Lack, 2006).', long: true },
+  { title: 'Eat something real', body: 'Have a proper snack — fruit, nuts, yogurt, a sandwich. Step away from the desk to eat it.', why: 'Long sessions on an empty stomach drain focus; eating away from your desk also gives you real mental distance.', long: true },
+];
+
+/** Pick a break idea that suits the break length, avoiding the one just shown. */
+export function pickBreakIdea(long: boolean, avoid?: BreakIdea) {
+  const pool = BREAK_IDEAS.filter((i) => (long || !i.long) && i !== avoid);
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** Upbeat playlists for breaks — lyrics welcome here. Users can add their own too. */
+export const BREAK_MEDIA: MediaItem[] = [
+  { id: 'sp-moodbooster', name: 'Mood Booster', note: 'Spotify · feel-good pop', url: 'https://open.spotify.com/playlist/37i9dQZF1DX3rxVfibe1L0' },
+  { id: 'sp-happyhits', name: 'Happy Hits!', note: 'Spotify · upbeat hits', url: 'https://open.spotify.com/playlist/37i9dQZF1DXdPec7aLTmlC' },
+  { id: 'sp-chillhits', name: 'Chill Hits', note: 'Spotify · relaxed pop', url: 'https://open.spotify.com/playlist/37i9dQZF1DX4WYpdgoIcn6' },
+  { id: 'sp-lofibeats', name: 'Lofi Beats', note: 'Spotify · lofi hip hop', url: 'https://open.spotify.com/playlist/37i9dQZF1DWWQRwui0ExPn' },
 ];
 
 export interface Strategy {

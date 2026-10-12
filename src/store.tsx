@@ -26,6 +26,8 @@ export const DEFAULT_SETTINGS: Settings = {
   dailyGoalMin: 60,
   weeklyGoalMin: 300,
   showExamWidget: true,
+  breakBeats: 'off',
+  beatVolume: 0.5,
 };
 
 export const sectionKey = (deckId: string, section: string) => `${deckId}\u0000${section}`;
@@ -45,6 +47,8 @@ export interface MediaLink {
   id: string;
   name: string;
   url: string;
+  /** 'break' links are listed under Break music instead of focus music. */
+  kind?: 'break';
 }
 
 export interface QuizRequest {

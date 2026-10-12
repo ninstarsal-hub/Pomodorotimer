@@ -26,6 +26,7 @@ import { ExamWidget } from './components/ExamWidget';
 import { InstallButton, UpdateToast } from './components/InstallUI';
 import { PracticePanel } from './components/PracticePanel';
 import { PracticeRunner } from './components/PracticeRunner';
+import { beats } from './lib/beats';
 
 type Panel = 'today' | 'plan' | 'sound' | 'notes' | 'practice' | 'stats' | 'learn' | 'settings';
 
@@ -233,6 +234,16 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timer.mode, timer.running]);
 
+  // Break beats: start with a running break (if enabled), always stop when focus resumes.
+  useEffect(() => {
+    if (timer.mode === 'focus') {
+      if (timer.running) beats.stop();
+    } else if (timer.running && settings.breakBeats !== 'off' && !beats.style) {
+      void beats.play(settings.breakBeats, settings.beatVolume);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timer.mode, timer.running]);
+
   // Tab title
   useEffect(() => {
     document.title = timer.started ? `${fmtClock(remaining)} · ${MODE_LABEL[timer.mode]} — Stillpoint` : 'Stillpoint';
@@ -312,6 +323,7 @@ export default function App() {
           onMode={switchMode}
           openTasks={openTasks}
           onOpenToday={() => setPanel('today')}
+          onOpenSound={() => setPanel('sound')}
         >
           {!timer.running && <Agenda onOpenPlan={() => setPanel('plan')} />}
         </TimerView>

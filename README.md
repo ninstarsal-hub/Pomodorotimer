@@ -9,7 +9,8 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 **Focus**
 - Pomodoro timer with Classic (25/5), Deep (50/10), Ultradian (90/20) and Sprint (15/3) presets, or set your own lengths
 - Before each block you can write down what you plan to do. Afterwards you rate your focus and write a one-line summary from memory
-- Break suggestions such as the 20-20-20 eye rule, moving around, and an animated box-breathing guide
+- Research-backed break ideas: doodling, drawing what you learned, going outside, an exercise snack, a brain dump, a power nap on long breaks, and more, each with a one-line summary of the study behind it. Tap "Another idea" to shuffle them, or browse the full list under Strategies
+- Break tools: a doodle pad (save your doodle as a PNG), an animated box-breathing guide, and break beats
 - A parking lot where you can write down a distracting thought and get back to work
 - Zen mode (`Z`), keyboard shortcuts, desktop notifications, and the time left shown in the browser tab
 
@@ -22,6 +23,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - Focus sounds generated in the browser, in the style of brain.fm: brown, pink or white noise, rain, café murmur, fireplace, ocean waves, ambient pads, amplitude modulation (theta/alpha/beta/gamma) and binaural beats
 - Six presets plus a mixer. The sounds can play only during focus blocks if you want
 - Built-in lyric-free YouTube streams and Spotify playlists, and you can add your own YouTube, Spotify or SoundCloud links
+- Break music: lofi, chillhop and deep-house beats generated in the browser (free, offline, no account), which can start automatically on breaks and stop when focus resumes. Also includes upbeat break playlists and your own break links
 
 **Learn**
 - Upload notes, slides or study guides: PDF, Word (`.docx`), PowerPoint (`.pptx`, including speaker notes), `.txt`, `.md`, `.html` or `.rtf`. You can also paste text or drag files in. Files are read in your browser

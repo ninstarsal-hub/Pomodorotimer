@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
 import { Pause, Play, RotateCcw, SkipForward } from 'lucide-react';
 import type { Mode, Task } from '../lib/types';
 import { fmtClock } from '../lib/storage';
-import { BREAK_IDEAS, TIMER_PRESETS } from '../lib/content';
+import { TIMER_PRESETS } from '../lib/content';
+import { BreakCard } from './BreakCard';
 import { useStore } from '../store';
 import { deckSections, sectionLabel } from '../lib/quiz';
 
@@ -23,6 +23,7 @@ interface Props {
   onMode: (m: Mode) => void;
   openTasks: Task[];
   onOpenToday: () => void;
+  onOpenSound: () => void;
   children?: React.ReactNode;
 }
 
@@ -39,7 +40,6 @@ export function TimerView(p: Props) {
   const C = 2 * Math.PI * R;
 
   const isBreak = p.mode !== 'focus';
-  const breakIdea = useMemo(() => BREAK_IDEAS[Math.floor(Math.random() * BREAK_IDEAS.length)], [p.mode, p.cycle]); // eslint-disable-line react-hooks/exhaustive-deps
   const posInSet = p.cycle % p.longEvery;
   const activePreset = TIMER_PRESETS.find((t) => t.focus === settings.focusMin && t.short === settings.shortMin && t.long === settings.longMin);
 
@@ -118,7 +118,7 @@ export function TimerView(p: Props) {
           )}
         </div>
       ) : (
-        <BreakCard idea={breakIdea} intention={p.intention} />
+        <BreakCard key={`${p.mode}-${p.cycle}`} long={p.mode === 'long'} intention={p.intention} onOpenSound={p.onOpenSound} />
       )}
     </section>
   );
@@ -146,37 +146,6 @@ function TaskPicker({ activeTask, tasks, onPick, onOpenToday }: { activeTask: Ta
         ))}
       </select>
     </label>
-  );
-}
-
-function BreakCard({ idea, intention }: { idea: (typeof BREAK_IDEAS)[number]; intention: string }) {
-  return (
-    <div className="break-card fade-zen">
-      <div className="eyebrow">Break suggestion</div>
-      <h3>{idea.title}</h3>
-      <p>{idea.body}</p>
-      {'breathe' in idea && idea.breathe && <Breather />}
-      {intention && (
-        <p className="muted small">
-          Last block’s intention: <em>“{intention}”</em> — did you get there?
-        </p>
-      )}
-    </div>
-  );
-}
-
-function Breather() {
-  const phases = ['Inhale', 'Hold', 'Exhale', 'Hold'];
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const id = window.setInterval(() => setI((x) => (x + 1) % 4), 4000);
-    return () => window.clearInterval(id);
-  }, []);
-  return (
-    <div className="breather">
-      <div className={`breather-orb phase-${i}`} />
-      <span>{phases[i]}</span>
-    </div>
   );
 }
 

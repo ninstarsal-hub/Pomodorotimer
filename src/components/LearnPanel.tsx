@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { STRATEGIES } from '../lib/content';
+import { BREAK_IDEAS, STRATEGIES } from '../lib/content';
 
 export function LearnPanel() {
   const [open, setOpen] = useState<string | null>(STRATEGIES[0].id);
@@ -30,6 +30,20 @@ export function LearnPanel() {
           )}
         </div>
       ))}
+      <div className="card">
+        <div className="eyebrow">Break ideas</div>
+        <p className="muted small">What to do with your breaks so you come back sharper. One is suggested each break — tap “Another idea” to shuffle.</p>
+        <ul className="break-list">
+          {BREAK_IDEAS.map((b) => (
+            <li key={b.title}>
+              <strong>{b.title}</strong>
+              {b.long && <span className="tag">Long break</span>}
+              <span>{b.body}</span>
+              {b.why && <em>{b.why}</em>}
+            </li>
+          ))}
+        </ul>
+      </div>
       <div className="card">
         <div className="eyebrow">Keyboard</div>
         <ul className="kbd-list">
