@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { BREAK_IDEAS, STRATEGIES } from '../lib/content';
+import { BREAK_IDEAS, BREAK_PLAN, STRATEGIES } from '../lib/content';
 
 export function LearnPanel() {
   const [open, setOpen] = useState<string | null>(STRATEGIES[0].id);
@@ -33,6 +33,18 @@ export function LearnPanel() {
       <div className="card">
         <div className="eyebrow">Break ideas</div>
         <p className="muted small">What to do with your breaks so you come back sharper. One is suggested each break — tap “Another idea” to shuffle.</p>
+        <div className="eyebrow" style={{ marginTop: 12 }}>Recommended order</div>
+        <ol className="break-plan-list">
+          {[...BREAK_PLAN.short.map((s, i) => ({ ...s, when: `Break ${i + 1}` })), { ...BREAK_PLAN.long, when: 'Long break' }].map((s) => (
+            <li key={s.when}>
+              <strong>
+                {s.when}: {s.label}
+              </strong>
+              <span>{s.reason}</span>
+            </li>
+          ))}
+        </ol>
+        <div className="eyebrow" style={{ marginTop: 12 }}>All ideas</div>
         <ul className="break-list">
           {BREAK_IDEAS.map((b) => (
             <li key={b.title}>

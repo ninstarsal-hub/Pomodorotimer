@@ -1,19 +1,32 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Download, Eraser, Music, PenLine, RefreshCw, Square, Wind } from 'lucide-react';
-import { pickBreakIdea, type BreakIdea, type BreakTool } from '../lib/content';
+import { BREAK_PLAN, ideaByTitle, pickBreakIdea, planStep, type BreakIdea, type BreakTool } from '../lib/content';
 import { BEAT_STYLES, beats, useBeatStyle } from '../lib/beats';
 import { useStore } from '../store';
 
 interface Props {
   long: boolean;
+  /** Focus blocks finished so far — decides which recommended break this is. */
+  cycle: number;
+  longEvery: number;
   intention: string;
   onOpenSound: () => void;
 }
 
 /** Render with a `key` per break so each break gets a fresh suggestion. */
-export function BreakCard({ long, intention, onOpenSound }: Props) {
-  const [idea, setIdea] = useState<BreakIdea>(() => pickBreakIdea(long));
+export function BreakCard({ long, cycle, longEvery, intention, onOpenSound }: Props) {
+  const { settings } = useStore();
+  const plan = settings.breakPlan ? planStep(long, cycle, longEvery) : null;
+  const recommended = plan ? ideaByTitle(plan.step.idea) : null;
+  const [idea, setIdea] = useState<BreakIdea>(() => recommended ?? pickBreakIdea(long));
   const [tool, setTool] = useState<BreakTool | null>(idea.tool ?? null);
+  const onPlan = !!recommended && idea === recommended;
+
+  const backToPlan = () => {
+    if (!recommended) return;
+    setIdea(recommended);
+    setTool((t) => (t === 'doodle' ? t : (recommended.tool ?? null)));
+  };
 
   const another = () => {
     const next = pickBreakIdea(long, idea);
@@ -27,14 +40,16 @@ export function BreakCard({ long, intention, onOpenSound }: Props) {
   return (
     <div className="break-card fade-zen">
       <div className="row between break-head">
-        <div className="eyebrow">{long ? 'Long break' : 'Break'} suggestion</div>
+        <div className="eyebrow">{plan ? (onPlan ? `${long ? 'Long break' : `Break ${plan.index + 1}`} · recommended` : 'Something different') : `${long ? 'Long break' : 'Break'} suggestion`}</div>
         <button className="link-btn small" onClick={another} title="Show a different idea">
           <RefreshCw size={12} /> Another idea
         </button>
       </div>
       <h3>{idea.title}</h3>
       <p>{idea.body}</p>
+      {onPlan && plan && <p className="break-reason">{plan.step.reason}</p>}
       {idea.why && <p className="break-why">{idea.why}</p>}
+      {plan && <PlanStrip long={long} index={plan.index} longEvery={longEvery} offPlan={!onPlan} onBack={backToPlan} />}
 
       <div className="break-tools" role="group" aria-label="Break tools">
         <button className={`chip ${tool === 'doodle' ? 'is-active' : ''}`} onClick={() => toggleTool('doodle')}>
@@ -56,6 +71,27 @@ export function BreakCard({ long, intention, onOpenSound }: Props) {
         <p className="muted small">
           Last block’s intention: <em>“{intention}”</em> — did you get there?
         </p>
+      )}
+    </div>
+  );
+}
+
+/** "Doodle → Walk → Rest → Recharge" with this break highlighted. */
+function PlanStrip({ long, index, longEvery, offPlan, onBack }: { long: boolean; index: number; longEvery: number; offPlan: boolean; onBack: () => void }) {
+  const shorts = Array.from({ length: Math.max(longEvery - 1, 0) }, (_, i) => BREAK_PLAN.short[i % BREAK_PLAN.short.length]);
+  const steps = [...shorts.map((s, i) => ({ ...s, current: !long && i === index })), { ...BREAK_PLAN.long, current: long }];
+  return (
+    <div className="plan-strip" aria-label="Recommended break plan">
+      {steps.map((s, i) => (
+        <Fragment key={i}>
+          {i > 0 && <span className="plan-arrow">→</span>}
+          <span className={`plan-step ${s.current ? 'is-current' : ''} ${i < (long ? steps.length - 1 : index) ? 'is-done' : ''}`}>{s.label}</span>
+        </Fragment>
+      ))}
+      {offPlan && (
+        <button className="link-btn small" onClick={onBack}>
+          Back to recommended
+        </button>
       )}
     </div>
   );

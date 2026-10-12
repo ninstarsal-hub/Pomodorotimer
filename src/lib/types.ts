@@ -27,6 +27,8 @@ export interface Settings {
   /** Break beats style to start automatically when a break begins ('off' = never). */
   breakBeats: 'off' | 'lofi' | 'bounce' | 'house';
   beatVolume: number;
+  /** Suggest breaks in a recommended order (doodle → walk → rest → recharge) instead of at random. */
+  breakPlan: boolean;
 }
 
 export interface BackgroundSetting {

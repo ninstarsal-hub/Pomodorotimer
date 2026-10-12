@@ -118,7 +118,7 @@ export function TimerView(p: Props) {
           )}
         </div>
       ) : (
-        <BreakCard key={`${p.mode}-${p.cycle}`} long={p.mode === 'long'} intention={p.intention} onOpenSound={p.onOpenSound} />
+        <BreakCard key={`${p.mode}-${p.cycle}`} long={p.mode === 'long'} cycle={p.cycle} longEvery={p.longEvery} intention={p.intention} onOpenSound={p.onOpenSound} />
       )}
     </section>
   );

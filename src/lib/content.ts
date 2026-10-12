@@ -97,9 +97,39 @@ export const BREAK_IDEAS: BreakIdea[] = [
   { title: 'Brain dump', body: 'Write down whatever is nagging you — worries, to-dos, random thoughts — for two minutes. Then let it go.', why: 'Writing out worries for 10 minutes before an exam raised anxious students’ scores (Ramirez & Beilock, 2011).' },
   { title: 'Talk to someone', body: 'Have a quick chat with a friend, roommate or family member — in person or a call, not a feed.', why: 'Short social micro-breaks are linked to more energy at work (Fritz et al., 2011).' },
   { title: 'Tense & release', body: 'Squeeze your fists, shoulders, then face for 5 seconds each, and let go. Notice the difference.', why: 'Progressive muscle relaxation reliably lowers stress and anxiety.' },
+  { title: 'Walk outside', body: 'Take a 5-minute walk — outside if you can, even just around the block or down the hall and back.', why: 'Walking boosted creative thinking by about 60% compared with sitting (Oppezzo & Schwartz, 2014), and being outdoors adds the attention-restoring effect of nature.' },
+  { title: 'Recharge', body: 'Get outside or move around, then eat a real snack and drink some water. Running on empty? Take a 10–20 minute nap instead.', why: 'Longer breaks work best when they actually restore energy — movement, food and daylight — rather than more screen time.', long: true },
   { title: 'Power nap', body: 'Lie down for 10–20 minutes with an alarm set. Keep it short so you don’t wake up groggy.', why: 'A 10-minute nap improved alertness and performance right away, without the grogginess of longer naps (Brooks & Lack, 2006).', long: true },
   { title: 'Eat something real', body: 'Have a proper snack — fruit, nuts, yogurt, a sandwich. Step away from the desk to eat it.', why: 'Long sessions on an empty stomach drain focus; eating away from your desk also gives you real mental distance.', long: true },
 ];
+
+export interface PlanStep {
+  /** Short name shown in the plan strip. */
+  label: string;
+  idea: string;
+  /** Why this break comes at this point in the set. */
+  reason: string;
+}
+
+/** The recommended order for breaks in a set: start light, then move, then calm down, then truly recharge. */
+export const BREAK_PLAN: { short: PlanStep[]; long: PlanStep } = {
+  short: [
+    { label: 'Doodle', idea: 'Doodle', reason: 'After one block your brain just needs a light, creative reset — no need to get up yet.' },
+    { label: 'Walk', idea: 'Walk outside', reason: 'You’ve been sitting for two blocks now. Get your body moving and some fresh air.' },
+    { label: 'Rest', idea: 'Rest your mind', reason: 'Fatigue builds by the third block — calm down instead of revving up, and give your eyes a rest.' },
+  ],
+  long: { label: 'Recharge', idea: 'Recharge', reason: 'You finished a full set. Step away properly: move, eat, refill — this is where you recover for the next round.' },
+};
+
+/** Which recommended break this is. `cycle` = focus blocks finished so far. */
+export function planStep(long: boolean, cycle: number, longEvery: number) {
+  if (long) return { step: BREAK_PLAN.long, index: Math.max(longEvery - 1, 0) };
+  const pos = Math.max((cycle % longEvery) - 1, 0); // 1st, 2nd, 3rd break of the set
+  const step = BREAK_PLAN.short[pos % BREAK_PLAN.short.length];
+  return { step, index: pos };
+}
+
+export const ideaByTitle = (title: string) => BREAK_IDEAS.find((i) => i.title === title)!;
 
 /** Pick a break idea that suits the break length, avoiding the one just shown. */
 export function pickBreakIdea(long: boolean, avoid?: BreakIdea) {

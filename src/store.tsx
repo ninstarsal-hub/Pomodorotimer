@@ -28,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   showExamWidget: true,
   breakBeats: 'off',
   beatVolume: 0.5,
+  breakPlan: true,
 };
 
 export const sectionKey = (deckId: string, section: string) => `${deckId}\u0000${section}`;
