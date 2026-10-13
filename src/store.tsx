@@ -4,7 +4,9 @@ import { deckCards, type QuizItem } from './lib/quiz';
 import type { SoundParams } from './lib/audio';
 import type { Problem, ProblemRef, ProblemSet } from './lib/problems';
 import { SOUND_PRESETS } from './lib/audio';
-import type { Card, Deck, Distraction, Exam, ReviewState, Session, Settings, Task } from './lib/types';
+import type { Card, Deck, Distraction, Exam, ReviewState, Session, Settings, StudySession, Task } from './lib/types';
+import { isLive } from './lib/studySessions';
+import { uid } from './lib/storage';
 
 export const DEFAULT_SETTINGS: Settings = {
   focusMin: 25,
@@ -90,6 +92,35 @@ function useStoreValue() {
   const updateProblem = (setId: string, problemId: string, fn: (p: Problem) => Problem) =>
     setProblemSets((ss) => ss.map((set) => (set.id !== setId ? set : { ...set, problems: set.problems.map((p) => (p.id === problemId ? fn(p) : p)) })));
   const [uploadVersion, setUploadVersion] = useState(0);
+
+  /* ---------- study sessions (a sitting of several focus blocks) ---------- */
+  const [studySessions, setStudySessions] = usePersistentState<StudySession[]>('studySessions', []);
+  const [activeStudyId, setActiveStudyId] = usePersistentState<string | null>('activeStudySession', null);
+  const [customFactors, setCustomFactors] = usePersistentState<string[]>('customFactors', []);
+  const activeStudy = studySessions.find((s) => s.id === activeStudyId);
+  const liveStudy = activeStudy && isLive(activeStudy) ? activeStudy : null;
+
+  /** The session a new focus block belongs to — continuing the live one or starting a fresh one. */
+  const ensureStudySession = (): { id: string; isNew: boolean } => {
+    if (liveStudy) return { id: liveStudy.id, isNew: false };
+    const now = Date.now();
+    const s: StudySession = { id: uid(), startedAt: now, lastAt: now, factors: [], used: [] };
+    // A session that just went quiet (long gap) is closed where it stopped, so it can still be rated later.
+    setStudySessions((ss) => [...ss.map((x) => (x.id === activeStudyId && !x.endedAt ? { ...x, endedAt: x.lastAt } : x)), s]);
+    setActiveStudyId(s.id);
+    return { id: s.id, isNew: true };
+  };
+  const touchStudySession = (id: string) => setStudySessions((ss) => ss.map((x) => (x.id === id ? { ...x, lastAt: Date.now() } : x)));
+  /** Note that a tool was used this session (focus sounds, break music, doodle) — pre-ticks the review. */
+  const markUsed = (tag: string) => {
+    if (!liveStudy || liveStudy.used.includes(tag)) return;
+    setStudySessions((ss) => ss.map((x) => (x.id === liveStudy.id ? { ...x, used: [...x.used, tag] } : x)));
+  };
+  const updateStudySession = (id: string, patch: Partial<StudySession>) => setStudySessions((ss) => ss.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+  const endStudySession = (id: string, patch: Partial<StudySession> = {}) => {
+    setStudySessions((ss) => ss.map((x) => (x.id === id ? { ...x, endedAt: x.endedAt ?? Date.now(), ...patch } : x)));
+    if (id === activeStudyId) setActiveStudyId(null);
+  };
 
   const cards = useMemo<Card[]>(() => decks.flatMap(deckCards), [decks]);
 
@@ -182,6 +213,16 @@ function useStoreValue() {
     setPracticeRun,
     sectionLog,
     uploadVersion,
+    studySessions,
+    setStudySessions,
+    liveStudy,
+    ensureStudySession,
+    touchStudySession,
+    markUsed,
+    updateStudySession,
+    endStudySession,
+    customFactors,
+    setCustomFactors,
     setUploadVersion,
     cards,
     today,

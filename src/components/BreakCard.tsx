@@ -152,6 +152,7 @@ const INKS = ['accent', '#e8e6e1', '#a9c4a4', '#a8bfd9', '#e0aeb0'];
 let savedDoodle: string | null = null;
 
 function DoodlePad() {
+  const { markUsed } = useStore();
   const canvas = useRef<HTMLCanvasElement>(null);
   const drawing = useRef<{ x: number; y: number } | null>(null);
   const [ink, setInk] = useState(INKS[0]);
@@ -207,6 +208,7 @@ function DoodlePad() {
     if (!hasInk.current) {
       hasInk.current = true;
       setEmpty(false);
+      markUsed('doodle');
     }
   };
 

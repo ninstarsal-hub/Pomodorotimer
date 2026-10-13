@@ -61,6 +61,26 @@ export interface Session {
   intention?: string;
   rating?: number;
   recall?: string;
+  /** The study session (morning, evening…) this block belongs to. */
+  studySessionId?: string;
+  /** "Biology · Session 3" — the section picked under the timer, if any. */
+  section?: string;
+}
+
+/** A sitting of one or more focus blocks — e.g. a morning session and a night session on the same day. */
+export interface StudySession {
+  id: string;
+  startedAt: number;
+  /** Last activity (a focus block finishing); a long gap means the next block starts a new session. */
+  lastAt: number;
+  endedAt?: number;
+  /** Overall focus for the session, 1–5. */
+  rating?: number;
+  /** Habits and conditions you ticked when ending it (see SESSION_FACTORS; custom ones are "custom:Text"). */
+  factors: string[];
+  /** Tools Stillpoint saw you use (focus sounds, break music, doodle pad), to pre-tick factors. */
+  used: string[];
+  note?: string;
 }
 
 export interface Deck {

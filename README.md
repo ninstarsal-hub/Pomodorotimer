@@ -52,6 +52,12 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - **Cram mode:** when an exam is 2 days away or less, a "Cram" button quizzes your 12 weakest questions for it, bringing back anything you miss until you get it
 - **Goals:** daily and weekly focus-minute goals, a progress ring in the corner, and streaks that only count days you hit your goal
 
+**Study sessions**
+- Focus blocks are grouped into study sessions (a morning session and a night session are separate). A block started after a gap of 2½ hours or more, such as the next day or the evening after a morning session, starts a new session and resets the block count, so breaks follow the new set
+- **End session** (bottom of the main screen) lets you rate the whole session from 1 to 5 and tick what was true: stayed hydrated, phone away, slept well, moved on breaks, doodled, focus sounds, lights low, studied away from home, and more, or add your own. Things Stillpoint saw you use (focus sounds, break music, the doodle pad) are pre-ticked. Ending also resets the block count
+- Progress lists your recent sessions with what you worked on in each block, your per-block and overall ratings, and what you ticked. Unrated sessions can be rated later
+- **What works for you:** after 3 rated sessions, Stillpoint looks for patterns: your best time of day, habits that go with better (or worse) focus, what matters most in morning vs. night sessions, and the block where your focus usually drops
+
 **Progress**: minutes focused today, goals, **mastery by section** (weakest first, with a "Quiz my weakest sections" button), your streak, recall accuracy, a chart of the last 7 days, time per subject, your average focus rating, and recent blocks with your recall notes.
 
 **Customize**: accent colours, illustrated scenes (mountains, café, lakeside, dunes, city night) with optional gentle motion, animated backgrounds (aurora, ember, deep sea, forest, dusk, night sky, rain), an image URL, or your own uploaded image, with sliders for dim and blur.

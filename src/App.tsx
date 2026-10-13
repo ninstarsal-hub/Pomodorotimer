@@ -3,7 +3,7 @@ import { BookOpen, CalendarDays, ChartColumn, PencilRuler, Headphones, Lightbulb
 import { useStore } from './store';
 import { usePersistentState, dayKey, fmtClock, uid } from './lib/storage';
 import { chime, engine } from './lib/audio';
-import { buildQuiz, isDue } from './lib/quiz';
+import { buildQuiz, isDue, sectionLabel } from './lib/quiz';
 import type { Mode, TimerState } from './lib/types';
 import { Background } from './components/Background';
 import { TimerView } from './components/TimerView';
@@ -24,6 +24,9 @@ import { PlanPanel } from './components/PlanPanel';
 import { GoalStat } from './components/GoalStat';
 import { ExamWidget } from './components/ExamWidget';
 import { Welcome } from './components/Welcome';
+import { SessionReview } from './components/SessionReview';
+import { SessionPill } from './components/SessionPill';
+import { sessionTitle } from './lib/studySessions';
 import { BackupNudge, InstallButton, UpdateToast } from './components/InstallUI';
 import { PracticePanel } from './components/PracticePanel';
 import { PracticeRunner } from './components/PracticeRunner';
@@ -61,6 +64,7 @@ export default function App() {
   const [checkpoint, setCheckpoint] = useState(false);
   const [reflectionId, setReflectionId] = useState<string | null>(null);
   const [recallOpen, setRecallOpen] = useState(false);
+  const [review, setReview] = useState<{ id: string; ending: boolean } | null>(null);
 
   // Panels open just below the top bar, whose height changes (wrapping on phones, exam countdown).
   const topbarRef = useRef<HTMLElement>(null);
@@ -149,9 +153,24 @@ export default function App() {
         if (minutes >= 1) {
           sessionId = uid();
           const at = Date.now();
+          const studySessionId = store.ensureStudySession().id;
+          store.touchStudySession(studySessionId);
+          const deck = studyingNow ? store.decks.find((d) => d.id === studyingNow.deckId) : undefined;
+          const section = deck ? [deck.title, studyingNow!.section ? sectionLabel(studyingNow!.section, deck) : ''].filter(Boolean).join(' · ') : undefined;
           setSessions((s) => [
             ...s,
-            { id: sessionId!, day: dayKey(), at, minutes, taskId: activeTask?.id, subject: activeTask?.subject || undefined, intention: t.intention || undefined, recall: t.recall || undefined },
+            {
+              id: sessionId!,
+              day: dayKey(),
+              at,
+              minutes,
+              taskId: activeTask?.id,
+              subject: activeTask?.subject || undefined,
+              intention: t.intention || undefined,
+              recall: t.recall || undefined,
+              studySessionId,
+              section,
+            },
           ]);
           if (activeTask && !skipped) setTasks((ts) => ts.map((x) => (x.id === activeTask.id ? { ...x, pomos: x.pomos + 1 } : x)));
         }
@@ -172,7 +191,8 @@ export default function App() {
       }
       setCheckpoint(false);
     },
-    [timer, elapsed, settings, activeTask, setSessions, setTasks, goTo],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [timer, elapsed, settings, activeTask, setSessions, setTasks, goTo, studyingNow, store.liveStudy?.id],
   );
 
   // Phase completion
@@ -199,7 +219,9 @@ export default function App() {
       void Notification.requestPermission();
     }
     const firstStart = !timer.started;
-    setTimer((t) => ({ ...t, running: true, started: true, endAt: Date.now() + t.remaining }));
+    // A focus block after a long gap (new day, or evening after a morning session) starts a fresh session and set.
+    const fresh = firstStart && timer.mode === 'focus' && store.ensureStudySession().isNew;
+    setTimer((t) => ({ ...t, running: true, started: true, endAt: Date.now() + t.remaining, ...(fresh ? { cycle: 0 } : {}) }));
     if (firstStart && timer.mode === 'focus' && settings.warmupQuiz) {
       // Warm up on earlier sections that are due for review — never on material you haven't studied yet.
       const due = earlierCards.filter((c) => isDue(reviews[c.id]));
@@ -207,7 +229,7 @@ export default function App() {
       if (items.length) store.setQuiz({ items, title: 'Warm-up', subtitle: 'Quick review of sections you’ve already studied, before you dive in.' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.notifications, settings.warmupQuiz, timer.started, timer.mode, earlierCards, reviews, setTimer]);
+  }, [settings.notifications, settings.warmupQuiz, timer.started, timer.mode, earlierCards, reviews, setTimer, store.liveStudy?.id]);
 
   const pause = useCallback(() => {
     setTimer((t) => ({ ...t, running: false, endAt: null, remaining: t.endAt ? Math.max(0, t.endAt - Date.now()) : t.remaining }));
@@ -244,6 +266,13 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timer.mode, timer.running]);
+
+  // Note tools used this session so the end-of-session review can pre-tick them.
+  useEffect(() => {
+    if (store.soundPlaying) store.markUsed('sounds');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.soundPlaying, store.liveStudy?.id]);
+  useEffect(() => beats.subscribe(() => beats.style && store.markUsed('music')));
 
   // Tab title
   useEffect(() => {
@@ -332,6 +361,13 @@ export default function App() {
 
       <footer className="footer fade-zen">
         <ParkingInput onOpen={() => setPanel('today')} />
+        {store.liveStudy && !timer.running && (
+          <SessionPill
+            title={sessionTitle(store.liveStudy)}
+            blocks={sessions.filter((s) => s.studySessionId === store.liveStudy!.id).length}
+            onEnd={() => setReview({ id: store.liveStudy!.id, ending: true })}
+          />
+        )}
         <GoalStat minutes={todayMinutes} goal={settings.dailyGoalMin} onClick={() => setPanel('stats')} />
       </footer>
 
@@ -396,6 +432,17 @@ export default function App() {
         />
       )}
       <Welcome onOpen={setPanel} />
+      {review && (
+        <SessionReview
+          id={review.id}
+          ending={review.ending}
+          onClose={() => setReview(null)}
+          onDone={() => {
+            if (review.ending) goTo('focus', false, { cycle: 0, intention: '', recall: '' });
+            setReview(null);
+          }}
+        />
+      )}
       {store.quiz && <QuizModal request={store.quiz} onClose={() => store.setQuiz(null)} />}
       {recallOpen && (
         <RecallModal

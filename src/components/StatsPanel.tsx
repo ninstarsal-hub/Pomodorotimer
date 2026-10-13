@@ -4,6 +4,7 @@ import { useStore, sectionKey } from '../store';
 import { dayKey, fmtMinutes } from '../lib/storage';
 import { deckSections, sectionLabel } from '../lib/quiz';
 import { MISTAKES } from '../lib/problems';
+import { InsightsCard, SessionHistory } from './SessionHistory';
 
 export function StatsPanel() {
   const { sessions, reviewLog, tasks, today, settings } = useStore();
@@ -54,7 +55,8 @@ export function StatsPanel() {
   const max = Math.max(60, goal, ...data.week.map((w) => w.minutes));
   const todayMinutes = data.todaySessions.reduce((a, s) => a + s.minutes, 0);
   const doneToday = tasks.filter((t) => t.day === today && t.done).length;
-  const recent = [...sessions].reverse().slice(0, 8);
+  // Blocks from before study sessions existed.
+  const recent = [...sessions].filter((s) => !s.studySessionId).reverse().slice(0, 8);
 
   return (
     <div className="stack">
@@ -73,6 +75,10 @@ export function StatsPanel() {
           <p className="muted small">Change your goals in Settings.</p>
         </section>
       )}
+
+      <InsightsCard />
+
+      <SessionHistory />
 
       <MasteryCard />
 
@@ -98,6 +104,7 @@ export function StatsPanel() {
             </div>
           ))}
         </div>
+        <p className="muted small">All-time: {fmtMinutes(data.total)}</p>
       </section>
 
       {data.subjects.length > 0 && (
@@ -128,11 +135,9 @@ export function StatsPanel() {
         </section>
       )}
 
-      <section className="card">
-        <div className="eyebrow">Recent blocks</div>
-        {recent.length === 0 ? (
-          <p className="empty-state">Your completed focus blocks will appear here.</p>
-        ) : (
+      {recent.length > 0 && (
+        <section className="card">
+          <div className="eyebrow">Earlier blocks</div>
           <ul className="session-list">
             {recent.map((s) => {
               const t = tasks.find((x) => x.id === s.taskId);
@@ -149,9 +154,8 @@ export function StatsPanel() {
               );
             })}
           </ul>
-        )}
-        <p className="muted small">All-time: {fmtMinutes(data.total)}</p>
-      </section>
+        </section>
+      )}
     </div>
   );
 }
