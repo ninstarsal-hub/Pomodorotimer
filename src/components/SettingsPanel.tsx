@@ -4,9 +4,8 @@ import { useStore } from '../store';
 import { ACCENTS, BACKGROUND_PRESETS } from '../lib/content';
 import { putBlob } from '../lib/storage';
 import { InstallSection } from './InstallUI';
+import { exportBackup, lastBackupAt, readBackup, restoreBackup } from '../lib/backup';
 import type { Settings } from '../lib/types';
-
-const PREFIX = 'stillpoint:';
 
 export function SettingsPanel() {
   const { settings, setSettings, setUploadVersion } = useStore();
@@ -30,28 +29,27 @@ export function SettingsPanel() {
     }
   };
 
-  const exportData = () => {
-    const data: Record<string, unknown> = {};
-    for (let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i)!;
-      if (k.startsWith(PREFIX)) data[k] = JSON.parse(localStorage.getItem(k)!);
+  const [backupMsg, setBackupMsg] = useState('');
+  const [last, setLast] = useState(lastBackupAt);
+
+  const exportData = async () => {
+    try {
+      await exportBackup();
+      setLast(lastBackupAt());
+      setBackupMsg('Backup saved to your downloads.');
+    } catch {
+      setBackupMsg('Could not create the backup in this browser.');
     }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `stillpoint-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
   };
 
   const importData = async (file: File) => {
     try {
-      const data = JSON.parse(await file.text()) as Record<string, unknown>;
-      if (!confirm('Replace your current data with this backup?')) return;
-      for (const [k, v] of Object.entries(data)) if (k.startsWith(PREFIX)) localStorage.setItem(k, JSON.stringify(v));
-      location.reload();
-    } catch {
-      alert('That file is not a valid Stillpoint backup.');
+      const { backup, summary } = await readBackup(file);
+      const what = `${summary.notes} set${summary.notes === 1 ? '' : 's'} of notes, ${summary.exams} exam${summary.exams === 1 ? '' : 's'}, ${summary.sessions} focus session${summary.sessions === 1 ? '' : 's'}`;
+      if (!confirm(`Restore this backup${summary.date ? ` from ${summary.date}` : ''}?\n\nIt contains ${what}.\n\nThis replaces everything currently in Stillpoint on this browser.`)) return;
+      await restoreBackup(backup);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'That file is not a valid Stillpoint backup.');
     }
   };
 
@@ -159,9 +157,13 @@ export function SettingsPanel() {
 
       <section className="card">
         <div className="eyebrow">Your data</div>
-        <p className="muted small">Everything is stored privately in this browser — no account needed. Back it up to move between devices.</p>
+        <p className="muted small">
+          Everything is stored privately in this browser only — no account. If you clear your browser data or switch computers, it’s gone unless you have a backup. A backup is one file with your notes, progress, exams and settings;
+          import it on another computer or browser to carry on there.
+        </p>
+        <p className="small">{last ? `Last backup: ${new Date(last).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}` : 'You haven’t made a backup yet.'}</p>
         <div className="row wrap">
-          <button className="btn" onClick={exportData}>
+          <button className="btn primary" onClick={() => void exportData()}>
             <Download size={14} /> Export backup
           </button>
           <button className="btn" onClick={() => importRef.current?.click()}>
@@ -179,6 +181,7 @@ export function SettingsPanel() {
             }}
           />
         </div>
+        {backupMsg && <p className="small accent">{backupMsg}</p>}
       </section>
     </div>
   );

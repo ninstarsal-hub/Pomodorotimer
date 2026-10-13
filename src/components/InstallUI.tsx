@@ -1,4 +1,6 @@
-import { Download, RefreshCw, X } from 'lucide-react';
+import { useState } from 'react';
+import { Download, HardDriveDownload, RefreshCw, X } from 'lucide-react';
+import { backupDue, exportBackup, snoozeBackup } from '../lib/backup';
 import { usePersistentState } from '../lib/storage';
 import { applyUpdate, useInstall, useUpdateAvailable } from '../lib/pwa';
 
@@ -68,6 +70,41 @@ export function UpdateToast() {
       <span>A new version of Stillpoint is ready.</span>
       <button className="btn small primary" onClick={applyUpdate}>
         Refresh
+      </button>
+    </div>
+  );
+}
+
+/** Weekly nudge to back up — data lives only in this browser. */
+export function BackupNudge() {
+  const [show, setShow] = useState(backupDue);
+  const [saving, setSaving] = useState(false);
+  if (!show) return null;
+  return (
+    <div className="update-toast backup-toast" role="status">
+      <HardDriveDownload size={14} className="accent" />
+      <span>Your notes and progress live only in this browser. Save a backup?</span>
+      <button
+        className="btn small primary"
+        disabled={saving}
+        onClick={async () => {
+          setSaving(true);
+          await exportBackup().catch(() => {});
+          setShow(false);
+        }}
+      >
+        Back up
+      </button>
+      <button
+        className="icon-btn small"
+        onClick={() => {
+          snoozeBackup();
+          setShow(false);
+        }}
+        aria-label="Remind me next week"
+        title="Remind me next week"
+      >
+        <X size={12} />
       </button>
     </div>
   );

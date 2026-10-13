@@ -2,7 +2,7 @@ import { CalendarDays, Repeat, RotateCcw } from 'lucide-react';
 import { useDueProblems } from './PracticePanel';
 import { useStore } from '../store';
 import { buildQuiz } from '../lib/quiz';
-import { PlanItemRow, dueSummary, usePlanActions, usePlans } from './PlanPanel';
+import { CramButton, PlanItemRow, canCram, dueSummary, usePlanActions, usePlans } from './PlanPanel';
 
 /** Main-screen "what to do today": due reviews + today's exam-plan tasks. */
 export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
@@ -59,6 +59,12 @@ export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
             </span>
             <span className="muted small">{open.length ? `${todays.length - open.length}/${todays.length} done today` : todays.length ? 'All done today ✓' : 'Plan →'}</span>
           </button>
+          {canCram(next) && (
+            <div className="agenda-row">
+              <span className="grow small">{next.daysLeft === 0 ? 'Exam today' : next.daysLeft === 1 ? 'Exam tomorrow' : 'Exam in 2 days'} — drill your shakiest questions.</span>
+              <CramButton plan={next} label="Cram" />
+            </div>
+          )}
           {open.length > 0 && (
             <ul className="plan-list compact">
               {open.slice(0, 3).map(({ it }) => (

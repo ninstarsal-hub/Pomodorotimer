@@ -3,7 +3,8 @@ import { MathText } from './MathText';
 import { ArrowLeft, ArrowRight, Check, RotateCcw, X } from 'lucide-react';
 import { useStore } from '../store';
 import { usePersistentState } from '../lib/storage';
-import { checkAnswer, deckSections, schedule, sectionLabel } from '../lib/quiz';
+import { answerFeedback, deckSections, schedule, sectionLabel, type AnswerFeedback } from '../lib/quiz';
+import { Feedback } from './QuizModal';
 import { generateExam, maxQuestions, QTYPE_LABEL, type ExamQuestion, type QType } from '../lib/exam';
 import type { Card } from '../lib/types';
 
@@ -246,14 +247,16 @@ export function QuizBuilder({ onClose, onStartBlock }: { onClose: () => void; on
 
 interface Response {
   given: string;
-  /** null = needs self-grading (explain questions in exam mode). */
+  /** null = needs self-grading (explain questions, and typed answers that are close). */
   correct: boolean | null;
+  fb?: AnswerFeedback;
 }
 
-function autoGrade(q: ExamQuestion, given: string): boolean | null {
-  if (q.type === 'mcq' || q.type === 'tf') return given === q.answer;
-  if (q.type === 'explain') return null;
-  return checkAnswer(given, q.answer);
+function autoGrade(q: ExamQuestion, given: string): Pick<Response, 'correct' | 'fb'> {
+  if (q.type === 'mcq' || q.type === 'tf') return { correct: given === q.answer };
+  if (q.type === 'explain') return { correct: null };
+  const fb = answerFeedback(given, q.answer);
+  return { correct: fb.verdict === 'right' ? true : fb.verdict === 'close' ? null : false, fb };
 }
 
 function ExamRunner({
@@ -279,7 +282,7 @@ function ExamRunner({
   const r = q ? responses[q.id] : undefined;
 
   const answer = (given: string) => {
-    setResponses((rs) => ({ ...rs, [q.id]: { given, correct: autoGrade(q, given) } }));
+    setResponses((rs) => ({ ...rs, [q.id]: { given, ...autoGrade(q, given) } }));
     if (mode === 'practice') setRevealed(true);
   };
   const grade = (id: string, correct: boolean) => setResponses((rs) => ({ ...rs, [id]: { ...rs[id], given: rs[id]?.given ?? '', correct } }));
@@ -360,7 +363,7 @@ function ExamRunner({
               <X size={18} />
             </button>
           </div>
-          {!allGraded && <p className="small accent">Mark your “explain” answers below as right or wrong to finish scoring.</p>}
+          {!allGraded && <p className="small accent">Some answers need your call — mark your “explain” and “close” answers below as right or wrong to finish scoring.</p>}
           {bySection.size > 1 && (
             <ul className="subject-list wide">
               {[...bySection].map(([name, s]) => (
@@ -390,6 +393,7 @@ function ExamRunner({
                     <span className="muted">You: </span>
                     {res?.given || <em className="muted">no answer</em>}
                   </div>
+                  {res?.fb && res.fb.verdict !== 'right' && <Feedback fb={res.fb} />}
                   {!res?.correct && (
                     <div className="small">
                       <span className="muted">Answer: </span>
@@ -431,6 +435,27 @@ function ExamRunner({
 
   const showFeedback = mode === 'practice' && revealed && r;
 
+  // Keyboard: 1–4 / A–D pick an option, Y / N self-grade, Enter moves on.
+  useEffect(() => {
+    if (submitted || !q) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).closest('textarea, input') || e.metaKey || e.ctrlKey || e.altKey) return;
+      const k = e.key.toLowerCase();
+      const opts = q.options ?? [];
+      const idx = /^[1-9]$/.test(k) ? Number(k) - 1 : /^[a-d]$/.test(k) && q.type === 'mcq' ? k.charCodeAt(0) - 97 : -1;
+      if (idx >= 0 && idx < opts.length && !showFeedback) answer(opts[idx]);
+      else if ((k === 'y' || k === 'n') && showFeedback && r) grade(q.id, k === 'y');
+      else if (e.key === 'Enter') {
+        if (mode === 'practice' && showFeedback && r?.correct != null) next();
+        else if (mode === 'exam') i < questions.length - 1 ? setI(i + 1) : finish();
+        else return;
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
   return (
     <div className="modal-wrap" role="dialog" aria-modal="true" aria-label="Quiz">
       <div className="modal quiz">
@@ -457,15 +482,21 @@ function ExamRunner({
 
         {showFeedback && (
           <div className="answer">
-            {r.correct === true && (
-              <div className="verdict ok">
-                <Check size={14} /> Correct
-              </div>
-            )}
-            {r.correct === false && (
-              <div className="verdict bad">
-                <X size={14} /> Not quite
-              </div>
+            {r.fb ? (
+              <Feedback fb={r.fb} />
+            ) : (
+              <>
+                {r.correct === true && (
+                  <div className="verdict ok">
+                    <Check size={14} /> Correct
+                  </div>
+                )}
+                {r.correct === false && (
+                  <div className="verdict bad">
+                    <X size={14} /> Not quite
+                  </div>
+                )}
+              </>
             )}
             {q.type !== 'mcq' && q.type !== 'tf' && (
               <>
@@ -476,12 +507,12 @@ function ExamRunner({
             {q.explanation && <p className="muted small">{q.explanation}</p>}
             {(q.type === 'short' || q.type === 'blank' || q.type === 'explain') && (
               <div className="row wrap">
-                <span className="muted small">{q.type === 'explain' ? 'Did you cover the key idea?' : 'Override:'}</span>
+                <span className="muted small">{q.type === 'explain' || r.fb?.verdict === 'close' ? 'Did you have it?' : 'Override:'}</span>
                 <button className={`btn small ${r.correct === true ? 'primary' : ''}`} onClick={() => grade(q.id, true)}>
-                  I had it
+                  I had it <kbd>Y</kbd>
                 </button>
                 <button className={`btn small ${r.correct === false ? 'danger' : ''}`} onClick={() => grade(q.id, false)}>
-                  Missed it
+                  Missed it <kbd>N</kbd>
                 </button>
               </div>
             )}
@@ -553,7 +584,7 @@ function ExamQuestionView({
             const state = locked ? (o === q.answer ? 'is-right' : chosen ? 'is-wrong' : '') : chosen ? 'is-chosen' : '';
             return (
               <button key={o} className={`choice ${state}`} disabled={locked} onClick={() => onAnswer(o)}>
-                {q.type === 'mcq' && <span className="choice-letter">{String.fromCharCode(65 + idx)}</span>}
+                <span className="choice-letter">{q.type === 'mcq' ? String.fromCharCode(65 + idx) : idx + 1}</span>
                 <MathText text={o} />
               </button>
             );

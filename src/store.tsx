@@ -56,6 +56,8 @@ export interface QuizRequest {
   items: QuizItem[];
   title: string;
   subtitle?: string;
+  /** Cram mode: missed questions come back at the end of the round until you get them (up to 3 extra tries). */
+  repeatMissed?: boolean;
 }
 
 export type ReviewLog = Record<string, { total: number; correct: number }>;

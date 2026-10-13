@@ -27,13 +27,26 @@ export interface ExamPlan {
   days: PlanItem[][];
   /** 0..1 — each question counts in full once it's solid (right 3 times, spaced), partly while you're still learning it. */
   readiness: number;
-  /** solid = box ≥ 3 · learning = answered right at least once · unseen = never answered right yet. */
-  counts: { solid: number; learning: number; unseen: number; total: number };
+  /**
+   * solid = box ≥ 3 and reviewed on time · learning = answered right at least once ·
+   * fading = known once but overdue for review · unseen = never answered right yet.
+   */
+  counts: { solid: number; learning: number; fading: number; unseen: number; total: number };
 }
 
-/** How well one question is known, 0..1: a third per step up the spaced-repetition boxes, full marks at box 3. */
-export function cardScore(r: ReviewState | undefined) {
-  return r ? Math.min(r.box, 3) / 3 : 0;
+/**
+ * How much a question you've learned has likely faded, 0..1 (1 = fresh). Each review is scheduled
+ * for when you'd start to forget, so being overdue by one full interval roughly halves it.
+ */
+export function freshness(r: ReviewState | undefined, now = Date.now()) {
+  if (!r || r.due >= now) return 1;
+  const interval = Math.max(DAY, r.due - r.last);
+  return Math.max(0.25, 1 - (0.5 * (now - r.due)) / interval);
+}
+
+/** How well one question is known, 0..1: a third per step up the spaced-repetition boxes, full at box 3, less if overdue. */
+export function cardScore(r: ReviewState | undefined, now = Date.now()) {
+  return r ? (Math.min(r.box, 3) / 3) * freshness(r, now) : 0;
 }
 
 const DAY = 86_400_000;
@@ -95,14 +108,16 @@ export function buildPlan(exam: Exam, deck: Deck, cards: Card[], reviews: Record
   }
 
   const examCards = cards.filter((c) => c.deckId === deck.id && sections.includes(c.section));
-  const counts = { solid: 0, learning: 0, unseen: 0, total: examCards.length };
+  const counts = { solid: 0, learning: 0, fading: 0, unseen: 0, total: examCards.length };
   let score = 0;
   for (const c of examCards) {
-    const box = reviews[c.id]?.box ?? 0;
-    score += cardScore(reviews[c.id]);
-    if (box >= 3) counts.solid++;
-    else if (box > 0) counts.learning++;
-    else counts.unseen++;
+    const r = reviews[c.id];
+    const box = r?.box ?? 0;
+    score += cardScore(r);
+    if (box === 0) counts.unseen++;
+    else if (freshness(r) < 0.9) counts.fading++;
+    else if (box >= 3) counts.solid++;
+    else counts.learning++;
   }
   return { exam, deck, daysLeft, sections, days, readiness: examCards.length ? score / examCards.length : 0, counts };
 }

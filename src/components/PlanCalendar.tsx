@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Flag } from 'lucide-react';
+import { CalendarPlus, ChevronLeft, ChevronRight, Flag } from 'lucide-react';
+import { downloadIcs } from '../lib/ics';
 import { addDays, type ExamPlan, type PlanItem } from '../lib/planner';
 import { dayKey } from '../lib/storage';
 import { PlanItemRow } from './PlanPanel';
@@ -134,6 +135,15 @@ export function PlanCalendar({ plans }: { plans: ExamPlan[] }) {
           !sel?.exams.length && <p className="muted small">{selected < today ? 'Past day.' : 'Nothing planned — a free day, or a good one to get ahead.'}</p>
         )}
         {selected > today && sel?.items.length ? <p className="muted small">The plan updates every day as you study, so future days can shift a little.</p> : null}
+      </div>
+
+      <div className="cal-export">
+        <button className="btn small" onClick={() => downloadIcs(plans)}>
+          <CalendarPlus size={13} /> Add to Google / Apple Calendar
+        </button>
+        <p className="muted small">
+          Downloads a calendar file with your study days and exams — open it, or import it in Google Calendar (Settings → Import). It’s a snapshot: download again if your plan changes a lot.
+        </p>
       </div>
     </div>
   );

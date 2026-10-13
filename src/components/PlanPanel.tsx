@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { BookOpen, Check, Plus, RotateCcw, Trash2 } from 'lucide-react';
+import { BookOpen, Check, Flame, Plus, RotateCcw, Trash2 } from 'lucide-react';
 import { useStore, sectionKey } from '../store';
-import { buildPlan, addDays, type ExamPlan, type PlanItem } from '../lib/planner';
+import { buildPlan, addDays, cardScore, type ExamPlan, type PlanItem } from '../lib/planner';
 import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
 import { uid } from '../lib/storage';
 import { PlanCalendar } from './PlanCalendar';
@@ -38,6 +38,30 @@ export function usePlanActions() {
     if (items.length) setQuiz({ items, title: `${it.kind === 'final' ? 'Final review' : 'Review'} · ${it.label}`, subtitle: 'Planned review for your exam.' });
   };
   return { isDone, run, answeredToday };
+}
+
+/** Exam in the next 2 days → quiz the 12 weakest questions, repeating misses until they stick. */
+export function useCram() {
+  const { cards, reviews, setQuiz } = useStore();
+  return (plan: ExamPlan) => {
+    const acc = (id: string) => (reviews[id]?.seen ? reviews[id].correct / reviews[id].seen : 0);
+    const pool = cards.filter((c) => c.deckId === plan.deck.id && plan.sections.includes(c.section));
+    const weakest = [...pool].sort((a, b) => cardScore(reviews[a.id]) - cardScore(reviews[b.id]) || acc(a.id) - acc(b.id)).slice(0, 12);
+    const items = buildQuiz(weakest, reviews, weakest.length);
+    if (items.length)
+      setQuiz({ items, title: `Cram · ${plan.exam.title}`, subtitle: 'Your weakest questions for this exam. Anything you miss comes back at the end until you get it.', repeatMissed: true });
+  };
+}
+
+export const canCram = (plan: ExamPlan) => plan.daysLeft <= 2;
+
+export function CramButton({ plan, label = 'Cram weakest' }: { plan: ExamPlan; label?: string }) {
+  const cram = useCram();
+  return (
+    <button className="btn small primary cram-btn" onClick={() => cram(plan)} title="Quiz your 12 weakest questions for this exam until you get them right">
+      <Flame size={12} /> {label}
+    </button>
+  );
 }
 
 export function dueSummary(cards: ReturnType<typeof useStore>['unlocked'], reviews: ReturnType<typeof useStore>['reviews']) {
@@ -212,17 +236,23 @@ function ExamCard({ plan, onRemove }: { plan: ExamPlan; onRemove: () => void }) 
           <Trash2 size={14} />
         </button>
       </div>
-      <div className="readiness" title="Each question counts fully once you've got it right 3 times on different reviews, and partly before that">
+      <div className="readiness" title="Each question counts fully once you've got it right 3 times on different reviews, partly before that, and less when it's overdue for review">
         <span className="muted small">Readiness</span>
         <span className="subject-bar grow">
           <span style={{ width: `${readiness * 100}%` }} />
         </span>
         <span className="small">{Math.round(readiness * 100)}%</span>
       </div>
+      {canCram(plan) && (
+        <div className="cram-row">
+          <span className="small">{daysLeft === 0 ? 'Exam today' : daysLeft === 1 ? 'Exam tomorrow' : 'Exam in 2 days'} — drill the questions you’re shakiest on.</span>
+          <CramButton plan={plan} />
+        </div>
+      )}
       <p className="muted small readiness-counts">
         {counts.total === 0
           ? 'No questions found for this exam’s sections yet — check that the right notes and sections are linked.'
-          : `${counts.solid} solid · ${counts.learning} learning · ${counts.unseen} not yet answered right, of ${counts.total} questions. Questions become solid after 3 right answers on separate reviews.`}
+          : `${counts.solid} solid · ${counts.learning} learning · ${counts.fading ? `${counts.fading} fading (overdue for review) · ` : ''}${counts.unseen} not yet answered right, of ${counts.total} questions. Questions become solid after 3 right answers on separate reviews, and fade if you skip their reviews.`}
       </p>
       <div className="field-label">Today</div>
       {days[0].length ? (

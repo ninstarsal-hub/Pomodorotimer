@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { MathText } from './MathText';
 import { Check, X } from 'lucide-react';
 import { useStore, type QuizRequest } from '../store';
-import { checkAnswer, deckSections, schedule, sectionLabel, type Grade, type QuizItem } from '../lib/quiz';
+import { answerFeedback, deckSections, schedule, sectionLabel, type AnswerFeedback, type Grade, type QuizItem } from '../lib/quiz';
 
 interface Result {
   item: QuizItem;
@@ -13,14 +13,16 @@ export function QuizModal({ request, onClose }: { request: QuizRequest; onClose:
   const { setReviews, logReview, decks } = useStore();
   const [i, setI] = useState(0);
   const [results, setResults] = useState<Result[]>([]);
-  const item = request.items[i];
-  const done = i >= request.items.length;
+  const [queue, setQueue] = useState(request.items);
+  const item = queue[i];
+  const done = i >= queue.length;
 
   const grade = (g: Grade) => {
     const correct = g !== 'again';
     setReviews((r) => ({ ...r, [item.card.id]: schedule(r[item.card.id], g) }));
     logReview(correct, item.card);
     setResults((rs) => [...rs, { item, correct }]);
+    if (!correct && request.repeatMissed && queue.filter((q) => q.card.id === item.card.id).length < 4) setQueue((q) => [...q, item]);
     setI((x) => x + 1);
   };
 
@@ -34,7 +36,10 @@ export function QuizModal({ request, onClose }: { request: QuizRequest; onClose:
 
   const deck = item ? decks.find((d) => d.id === item.card.deckId) : undefined;
   const deckName = deck ? [deck.title, deck && deckSections(deck).length > 1 ? sectionLabel(item.card.section, deck) : ''].filter(Boolean).join(' · ') : undefined;
-  const score = results.filter((r) => r.correct).length;
+  // Cram: count each question once — did you get it by the end?
+  const finalByCard = new Map(results.map((r) => [r.item.card.id, r]));
+  const final = request.repeatMissed ? [...finalByCard.values()] : results;
+  const score = final.filter((r) => r.correct).length;
 
   return (
     <div className="modal-wrap" role="dialog" aria-modal="true" aria-label={request.title}>
@@ -44,7 +49,7 @@ export function QuizModal({ request, onClose }: { request: QuizRequest; onClose:
             <div className="eyebrow">{request.title}</div>
             {!done && (
               <div className="muted small">
-                Question {i + 1} of {request.items.length}
+                Question {i + 1} of {queue.length}
                 {deckName ? ` · ${item.earlier ? 'Review: ' : ''}${deckName}` : ''}
               </div>
             )}
@@ -54,7 +59,7 @@ export function QuizModal({ request, onClose }: { request: QuizRequest; onClose:
           </button>
         </div>
         <div className="quiz-progress">
-          <span style={{ width: `${(Math.min(i, request.items.length) / request.items.length) * 100}%` }} />
+          <span style={{ width: `${(Math.min(i, queue.length) / queue.length) * 100}%` }} />
         </div>
         {request.subtitle && i === 0 && !done && <p className="muted small">{request.subtitle}</p>}
 
@@ -63,18 +68,19 @@ export function QuizModal({ request, onClose }: { request: QuizRequest; onClose:
         ) : (
           <div className="quiz-done">
             <div className="score">
-              {score}/{results.length}
+              {score}/{final.length}
             </div>
+            {request.repeatMissed && <p className="muted small">{score === final.length ? 'Every question cleared by the end of the round.' : `${final.length - score} still shaky — look these over once more tonight.`}</p>}
             <p>
-              {score === results.length
+              {score === final.length
                 ? 'Clean sweep. These will come back later, spaced further apart.'
                 : 'Misses are the point — the effort of retrieving (and failing) is what makes the next recall stick. Missed cards will return soon.'}
             </p>
-            {results.some((r) => !r.correct) && (
+            {final.some((r) => !r.correct) && (
               <div className="weak">
                 <div className="eyebrow">Revisit</div>
                 <ul>
-                  {results
+                  {final
                     .filter((r) => !r.correct)
                     .map((r) => (
                       <li key={r.item.card.id}>
@@ -100,7 +106,7 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
   const [answer, setAnswer] = useState('');
   const [revealed, setRevealed] = useState(false);
   const [picked, setPicked] = useState<string | null>(null);
-  const [auto, setAuto] = useState<boolean | null>(null);
+  const [fb, setFb] = useState<AnswerFeedback | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const { card } = item;
 
@@ -109,9 +115,36 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
   }, []);
 
   const reveal = () => {
-    if (item.type === 'type' && answer.trim()) setAuto(checkAnswer(answer, card.back));
+    if (item.type === 'type' && answer.trim()) setFb(answerFeedback(answer, card.back));
     setRevealed(true);
   };
+
+  // Suggested grade from the automatic check (you can always pick another).
+  const suggested: Grade | null = !fb ? null : fb.verdict === 'right' ? 'good' : fb.verdict === 'close' ? (fb.hit.length / (fb.hit.length + fb.missed.length) >= 0.75 ? 'good' : 'hard') : null;
+
+  // Keyboard: 1–4 pick an option (multiple choice) or a grade; Enter goes on after a multiple-choice pick.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).closest('textarea, input') || e.metaKey || e.ctrlKey || e.altKey) return;
+      const n = Number(e.key);
+      if (item.type === 'choice') {
+        if (!picked && n >= 1 && n <= item.options!.length) {
+          setPicked(item.options![n - 1]);
+          setRevealed(true);
+        } else if (picked && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onGrade(picked === card.back ? 'good' : 'again');
+        }
+      } else if (revealed && n >= 1 && n <= 4) {
+        onGrade((['again', 'hard', 'good', 'easy'] as const)[n - 1]);
+      } else if (!revealed && e.key === 'Enter') {
+        e.preventDefault();
+        reveal();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   const prompt = card.kind === 'cloze' ? 'Fill in the blank' : card.kind === 'prompt' ? 'Explain from memory' : item.type === 'choice' ? 'Choose the answer' : 'Recall the answer';
 
@@ -136,6 +169,7 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
                   setRevealed(true);
                 }}
               >
+                <kbd className="choice-key">{item.options!.indexOf(o) + 1}</kbd>
                 <MathText text={o} />
               </button>
             );
@@ -168,7 +202,7 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
         <div className="answer">
           {item.type !== 'choice' && (
             <>
-              {auto !== null && <div className={`verdict ${auto ? 'ok' : 'bad'}`}>{auto ? <><Check size={14} /> Looks right</> : <><X size={14} /> Not quite</>}</div>}
+              {fb && <Feedback fb={fb} />}
               <div className="eyebrow muted">Answer</div>
               <MathText as="p" text={card.back} />
             </>
@@ -179,23 +213,52 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
             </button>
           ) : (
             <>
-              <div className="muted small">How well did you know it?</div>
+              <div className="muted small">How well did you know it? {fb && fb.verdict !== 'wrong' ? 'Your pick counts, not the automatic check.' : ''}</div>
               <div className="grades">
-                <button className="grade again" onClick={() => onGrade('again')}>
-                  Again
-                </button>
-                <button className="grade" onClick={() => onGrade('hard')}>
-                  Hard
-                </button>
-                <button className={`grade ${auto ? 'suggested' : ''}`} onClick={() => onGrade('good')}>
-                  Good
-                </button>
-                <button className="grade" onClick={() => onGrade('easy')}>
-                  Easy
-                </button>
+                {(['again', 'hard', 'good', 'easy'] as const).map((g, i) => (
+                  <button key={g} className={`grade ${g === 'again' ? 'again' : ''} ${suggested === g ? 'suggested' : ''}`} onClick={() => onGrade(g)}>
+                    {g[0].toUpperCase() + g.slice(1)}
+                    <kbd>{i + 1}</kbd>
+                  </button>
+                ))}
               </div>
             </>
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** "Looks right" / "Close" / "Not quite", plus which key words you got and missed. */
+export function Feedback({ fb }: { fb: AnswerFeedback }) {
+  return (
+    <div className="feedback">
+      <div className={`verdict ${fb.verdict === 'right' ? 'ok' : fb.verdict === 'close' ? 'close' : 'bad'}`}>
+        {fb.verdict === 'right' ? (
+          <>
+            <Check size={14} /> Looks right
+          </>
+        ) : fb.verdict === 'close' ? (
+          <>≈ Close — you have most of the key ideas</>
+        ) : (
+          <>
+            <X size={14} /> Not quite
+          </>
+        )}
+      </div>
+      {fb.verdict !== 'right' && fb.hit.length + fb.missed.length > 1 && (
+        <div className="keywords small">
+          {fb.hit.map((w) => (
+            <span key={w} className="kw hit">
+              ✓ {w}
+            </span>
+          ))}
+          {fb.missed.map((w) => (
+            <span key={w} className="kw miss">
+              {w}
+            </span>
+          ))}
         </div>
       )}
     </div>

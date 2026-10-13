@@ -23,7 +23,8 @@ import { Agenda } from './components/Agenda';
 import { PlanPanel } from './components/PlanPanel';
 import { GoalStat } from './components/GoalStat';
 import { ExamWidget } from './components/ExamWidget';
-import { InstallButton, UpdateToast } from './components/InstallUI';
+import { Welcome } from './components/Welcome';
+import { BackupNudge, InstallButton, UpdateToast } from './components/InstallUI';
 import { PracticePanel } from './components/PracticePanel';
 import { PracticeRunner } from './components/PracticeRunner';
 import { beats } from './lib/beats';
@@ -336,6 +337,7 @@ export default function App() {
 
       <MediaDock />
       <UpdateToast />
+      {!timer.running && <BackupNudge />}
 
       {checkpoint && (
         <Checkpoint
@@ -393,6 +395,7 @@ export default function App() {
           }}
         />
       )}
+      <Welcome onOpen={setPanel} />
       {store.quiz && <QuizModal request={store.quiz} onClose={() => store.setQuiz(null)} />}
       {recallOpen && (
         <RecallModal

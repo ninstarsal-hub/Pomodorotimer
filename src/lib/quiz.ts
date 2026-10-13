@@ -363,3 +363,33 @@ export function checkAnswer(given: string, expected: string): boolean {
   const hit = keys.filter((k) => g.includes(k)).length;
   return hit / keys.length >= 0.6;
 }
+
+export interface AnswerFeedback {
+  /** right = counts as correct · close = most key ideas are there, you decide · wrong = missing most of it */
+  verdict: 'right' | 'close' | 'wrong';
+  /** Key words from the answer that you included / left out (empty for math and very short answers). */
+  hit: string[];
+  missed: string[];
+}
+
+const wordMatch = (w: string, g: string[]) =>
+  g.some((x) => x === w || (w.length >= 5 && x.length >= 5 && x.slice(0, 5) === w.slice(0, 5)) || (w.length >= 4 && Math.abs(x.length - w.length) <= 1 && lev(x, w) <= 1));
+
+/** Like checkAnswer, but explains itself: which key words you got and which you missed. */
+export function answerFeedback(given: string, expected: string): AnswerFeedback {
+  if (checkAnswer(given, expected)) {
+    const keys = keyWords(expected);
+    return { verdict: 'right', hit: keys, missed: [] };
+  }
+  if (!norm(given) || mathEqual(given, expected) !== null) return { verdict: 'wrong', hit: [], missed: [] };
+  const keys = keyWords(expected);
+  if (keys.length < 2) return { verdict: 'wrong', hit: [], missed: keys };
+  const g = norm(given).split(' ');
+  const hit = keys.filter((k) => wordMatch(k, g));
+  const missed = keys.filter((k) => !hit.includes(k));
+  return { verdict: hit.length / keys.length >= 0.5 ? 'close' : 'wrong', hit, missed };
+}
+
+function keyWords(s: string) {
+  return [...new Set(norm(s).split(' ').filter((w) => w.length > 2 && !STOP.has(w)))];
+}

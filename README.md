@@ -47,6 +47,9 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - **Exam planner:** add an exam date and the sections it covers. Stillpoint schedules when to learn each new section and when to review each one, at about 14, 7 and 3 days before the exam plus a final review the day before. The plan is rebuilt every day, so a missed day just rolls forward instead of piling up. A Calendar view shows the plan for all your exams by month, with colour-coded days for learning, reviews, final reviews and exams. Tap a day to see what to do
 - **Exam countdown:** a small box at the top shows days until your next exam and how ready you are. Arrows step through upcoming exams, clicking it lists them all, and you can hide it (and bring it back from the calendar icon)
 - **Today card on the main screen:** shows how many review questions are due (with a time estimate) and today's exam-plan tasks, each with a one-click Study or Quiz button
+- **Readiness:** each exam's questions count in full once you've got them right 3 times on separate reviews, partly before that, and less when they're overdue for review. The exam card shows how many are solid, learning, fading or not yet answered right
+- **Calendar export:** download your plan and exam days as an .ics file for Google Calendar, Apple Calendar or Outlook, with 9am reminders
+- **Cram mode:** when an exam is 2 days away or less, a "Cram" button quizzes your 12 weakest questions for it, bringing back anything you miss until you get it
 - **Goals:** daily and weekly focus-minute goals, a progress ring in the corner, and streaks that only count days you hit your goal
 
 **Progress**: minutes focused today, goals, **mastery by section** (weakest first, with a "Quiz my weakest sections" button), your streak, recall accuracy, a chart of the last 7 days, time per subject, your average focus rating, and recent blocks with your recall notes.
@@ -55,7 +58,11 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 
 **Install it as an app (free):** in Chrome or Edge, click **Install app** in the top bar (or the install icon in the address bar). In Safari on a Mac, use **File → Add to Dock**; on iPhone, **Share → Add to Home Screen**. The installed app opens in its own window with a Dock/taskbar icon, works offline, and updates itself. When a new version is published, a "Refresh" prompt appears.
 
-All data stays in your browser's local storage, with no account. Use Settings → Export backup to move your data to another device.
+**Answer checking:** typed answers are marked right, **close** (you have most of the key words, so you decide) or not quite, with the key words you got and missed. Quizzes work from the keyboard: `1`–`4` pick an option or grade (Again / Hard / Good / Easy), `Y` / `N` mark a close answer, and `Enter` moves on.
+
+**New here?** First-time visitors get a short intro and can try everything with example notes and an example exam.
+
+All data stays in your browser's local storage, with no account. **Settings → Export backup** saves everything (notes, progress, exams, settings and your background image) to one file that you can import on another computer or browser. If you haven't backed up in a week, a reminder appears.
 
 ### Notes format
 

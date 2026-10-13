@@ -3179,3 +3179,147 @@ input[type='date'] {
 .plan-kind.kind-review {
   color: #a8bfd9;
 }
+.backup-toast {
+  bottom: 132px;
+  white-space: normal;
+  max-width: calc(100vw - 32px);
+}
+
+/* ---------- answer feedback & quiz keys ---------- */
+
+.verdict.close {
+  color: var(--accent);
+}
+.feedback {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.keywords {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.kw {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+}
+.kw.hit {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+}
+.kw.miss {
+  color: var(--muted);
+  border-style: dashed;
+}
+.grade kbd,
+.choice kbd.choice-key {
+  font-size: 10px;
+  min-width: 16px;
+  padding: 0 4px;
+  opacity: 0.55;
+}
+.grade kbd {
+  margin: 0 0 0 6px;
+}
+.choice {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+@media (hover: none) {
+  .grade kbd,
+  .choice kbd.choice-key {
+    display: none;
+  }
+}
+
+.cal-export {
+  border-top: 1px solid var(--line);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.cal-export .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.cal-export p {
+  margin: 6px 0 0;
+}
+
+/* ---------- welcome ---------- */
+
+.modal.welcome {
+  max-width: 460px;
+}
+.modal.welcome h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 34px;
+  margin: 2px 0 4px;
+}
+.welcome-steps {
+  list-style: none;
+  padding: 0;
+  margin: 18px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.welcome-steps li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.welcome-steps li > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.welcome-steps strong {
+  font-weight: 500;
+}
+.welcome-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--accent);
+}
+.welcome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.welcome-actions .link-btn {
+  align-self: center;
+}
+
+/* ---------- cram ---------- */
+
+.cram-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+.cram-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+}
