@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import { ACCENTS, BACKGROUND_PRESETS } from '../lib/content';
 import { putBlob } from '../lib/storage';
 import { InstallSection } from './InstallUI';
+import { Scene, SCENES } from './Scenes';
 import { exportBackup, lastBackupAt, readBackup, restoreBackup } from '../lib/backup';
 import type { Settings } from '../lib/types';
 
@@ -109,7 +110,17 @@ export function SettingsPanel() {
             <button key={a.id} className={`swatch ${settings.accent === a.value ? 'is-active' : ''}`} style={{ background: a.value }} onClick={() => set('accent', a.value)} aria-label={`Accent ${a.id}`} />
           ))}
         </div>
-        <div className="field-label">Background</div>
+        <div className="field-label">Scenes</div>
+        <div className="bg-grid scenes">
+          {SCENES.map((p) => (
+            <button key={p.id} className={`bg-thumb scene-thumb ${bg.kind === 'preset' && bg.preset === p.id ? 'is-active' : ''}`} onClick={() => set('background', { ...bg, kind: 'preset', preset: p.id })}>
+              <Scene id={p.id} animate={false} />
+              <span>{p.name}</span>
+            </button>
+          ))}
+        </div>
+        <Toggle label="Gentle motion in scenes (drifting clouds, steam, twinkling)" checked={settings.sceneMotion} onChange={(v) => set('sceneMotion', v)} />
+        <div className="field-label">Colours & ambience</div>
         <div className="bg-grid">
           {BACKGROUND_PRESETS.map((p) => (
             <button key={p.id} className={`bg-thumb thumb-${p.id} ${bg.kind === 'preset' && bg.preset === p.id ? 'is-active' : ''}`} onClick={() => set('background', { ...bg, kind: 'preset', preset: p.id })}>

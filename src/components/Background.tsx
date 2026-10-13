@@ -1,15 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import type { BackgroundSetting } from '../lib/types';
 import { getBlob } from '../lib/storage';
+import { isScene, Scene } from './Scenes';
 
 interface Props {
   bg: BackgroundSetting;
   dim: number;
   blur: number;
   uploadVersion: number;
+  motion?: boolean;
 }
 
-export function Background({ bg, dim, blur, uploadVersion }: Props) {
+export function Background({ bg, dim, blur, uploadVersion, motion = true }: Props) {
   const [uploadUrl, setUploadUrl] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,10 +35,12 @@ export function Background({ bg, dim, blur, uploadVersion }: Props) {
     <div className="bg" aria-hidden>
       {imageUrl ? (
         <div className="bg-image" style={{ backgroundImage: `url("${imageUrl.replace(/"/g, '%22')}")`, filter: blur ? `blur(${blur}px)` : undefined }} />
+      ) : isScene(bg.preset) ? (
+        <Scene id={bg.preset} animate={motion} blur={blur} />
       ) : (
         <Preset id={bg.preset} />
       )}
-      <div className="bg-dim" style={{ opacity: imageUrl ? dim : dim * 0.6 }} />
+      <div className="bg-dim" style={{ opacity: imageUrl ? dim : isScene(bg.preset) ? dim * 0.75 : dim * 0.6 }} />
       <div className="bg-grain" />
       <div className="bg-vignette" />
     </div>

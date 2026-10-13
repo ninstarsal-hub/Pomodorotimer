@@ -3323,3 +3323,113 @@ input[type='date'] {
   gap: 5px;
   flex: none;
 }
+
+/* ---------- illustrated scenes ---------- */
+
+.bg-scene {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: fadein 1.2s var(--ease);
+}
+.sc-drift {
+  animation: sc-drift 160s linear infinite;
+}
+.sc-drift.slow {
+  animation-duration: 260s;
+}
+@keyframes sc-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-700px);
+  }
+}
+.sc-steam path {
+  animation: sc-steam 6s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: bottom center;
+}
+.sc-steam path:nth-child(2) {
+  animation-delay: -3s;
+}
+@keyframes sc-steam {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) scaleY(0.85);
+  }
+  40% {
+    opacity: 0.32;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-26px) scaleY(1.05);
+  }
+}
+.sc-rain {
+  animation: sc-rain 3.2s linear infinite;
+}
+@keyframes sc-rain {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(540px);
+  }
+}
+.sc-twinkle {
+  animation: sc-twinkle 5s ease-in-out infinite;
+}
+@keyframes sc-twinkle {
+  50% {
+    opacity: 0.1;
+  }
+}
+.sc-shimmer {
+  animation: sc-shimmer 4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes sc-shimmer {
+  50% {
+    opacity: 0.12;
+    transform: scaleX(0.7);
+  }
+}
+.sc-window {
+  animation: sc-window 40s steps(1) infinite;
+}
+@keyframes sc-window {
+  50% {
+    fill: #1d2440;
+  }
+}
+.bg-scene.is-still *,
+.bg-scene.is-still {
+  animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bg-scene * {
+    animation: none !important;
+  }
+}
+
+.scene-thumb {
+  position: relative;
+}
+.scene-thumb svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.scene-thumb span {
+  position: relative;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  color: var(--text);
+}
+.bg-grid.scenes {
+  grid-template-columns: repeat(3, 1fr);
+}

@@ -282,7 +282,7 @@ export default function App() {
 
   return (
     <div className={`app ${zen ? 'is-zen' : ''} ${panel ? 'has-panel' : ''} mode-${timer.mode}`}>
-      <Background bg={settings.background} dim={settings.dim} blur={settings.blur} uploadVersion={store.uploadVersion} />
+      <Background bg={settings.background} dim={settings.dim} blur={settings.blur} uploadVersion={store.uploadVersion} motion={settings.sceneMotion} />
 
       <header className="topbar fade-zen" ref={topbarRef}>
         <div className="brand-wrap">

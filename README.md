@@ -54,7 +54,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 
 **Progress**: minutes focused today, goals, **mastery by section** (weakest first, with a "Quiz my weakest sections" button), your streak, recall accuracy, a chart of the last 7 days, time per subject, your average focus rating, and recent blocks with your recall notes.
 
-**Customize**: accent colours, animated backgrounds (aurora, ember, deep sea, forest, dusk, night sky, rain), an image URL, or your own uploaded image, with sliders for dim and blur.
+**Customize**: accent colours, illustrated scenes (mountains, café, lakeside, dunes, city night) with optional gentle motion, animated backgrounds (aurora, ember, deep sea, forest, dusk, night sky, rain), an image URL, or your own uploaded image, with sliders for dim and blur.
 
 **Install it as an app (free):** in Chrome or Edge, click **Install app** in the top bar (or the install icon in the address bar). In Safari on a Mac, use **File → Add to Dock**; on iPhone, **Share → Add to Home Screen**. The installed app opens in its own window with a Dock/taskbar icon, works offline, and updates itself. When a new version is published, a "Refresh" prompt appears.
 

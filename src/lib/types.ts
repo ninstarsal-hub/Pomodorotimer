@@ -29,6 +29,8 @@ export interface Settings {
   beatVolume: number;
   /** Suggest breaks in a recommended order (doodle → walk → rest → recharge) instead of at random. */
   breakPlan: boolean;
+  /** Gentle motion in illustrated scene backgrounds (clouds, steam, twinkle). */
+  sceneMotion: boolean;
 }
 
 export interface BackgroundSetting {
