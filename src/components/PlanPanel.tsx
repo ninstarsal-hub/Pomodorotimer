@@ -175,7 +175,7 @@ export function PlanPanel() {
 }
 
 function ExamCard({ plan, onRemove }: { plan: ExamPlan; onRemove: () => void }) {
-  const { exam, daysLeft, days, readiness, sections } = plan;
+  const { exam, daysLeft, days, readiness, sections, counts } = plan;
   const [showAll, setShowAll] = useState(false);
   const upcoming = days.map((items, i) => ({ i, items })).filter((d) => d.i > 0 && d.items.length);
   const when = daysLeft === 0 ? 'Today' : daysLeft === 1 ? 'Tomorrow' : `In ${daysLeft} days`;
@@ -197,13 +197,18 @@ function ExamCard({ plan, onRemove }: { plan: ExamPlan; onRemove: () => void }) 
           <Trash2 size={14} />
         </button>
       </div>
-      <div className="readiness" title="Share of this exam's questions you know well">
+      <div className="readiness" title="Each question counts fully once you've got it right 3 times on different reviews, and partly before that">
         <span className="muted small">Readiness</span>
         <span className="subject-bar grow">
           <span style={{ width: `${readiness * 100}%` }} />
         </span>
         <span className="small">{Math.round(readiness * 100)}%</span>
       </div>
+      <p className="muted small readiness-counts">
+        {counts.total === 0
+          ? 'No questions found for this exam’s sections yet — check that the right notes and sections are linked.'
+          : `${counts.solid} solid · ${counts.learning} learning · ${counts.unseen} not yet answered right, of ${counts.total} questions. Questions become solid after 3 right answers on separate reviews.`}
+      </p>
       <div className="field-label">Today</div>
       {days[0].length ? (
         <ul className="plan-list">

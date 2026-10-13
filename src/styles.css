@@ -2542,6 +2542,9 @@ input[type='checkbox'].box:indeterminate {
 .exam-card strong {
   font-weight: 500;
 }
+.readiness-counts {
+  margin: 4px 0 0;
+}
 .readiness {
   display: flex;
   align-items: center;

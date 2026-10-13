@@ -25,8 +25,15 @@ export interface ExamPlan {
   sections: string[];
   /** Plan for each day from today (index 0) up to the day before the exam. */
   days: PlanItem[][];
-  /** Share of the exam's questions you know well (box ≥ 3), 0..1. */
+  /** 0..1 — each question counts in full once it's solid (right 3 times, spaced), partly while you're still learning it. */
   readiness: number;
+  /** solid = box ≥ 3 · learning = answered right at least once · unseen = never answered right yet. */
+  counts: { solid: number; learning: number; unseen: number; total: number };
+}
+
+/** How well one question is known, 0..1: a third per step up the spaced-repetition boxes, full marks at box 3. */
+export function cardScore(r: ReviewState | undefined) {
+  return r ? Math.min(r.box, 3) / 3 : 0;
 }
 
 const DAY = 86_400_000;
@@ -88,6 +95,14 @@ export function buildPlan(exam: Exam, deck: Deck, cards: Card[], reviews: Record
   }
 
   const examCards = cards.filter((c) => c.deckId === deck.id && sections.includes(c.section));
-  const known = examCards.filter((c) => (reviews[c.id]?.box ?? 0) >= 3).length;
-  return { exam, deck, daysLeft, sections, days, readiness: examCards.length ? known / examCards.length : 0 };
+  const counts = { solid: 0, learning: 0, unseen: 0, total: examCards.length };
+  let score = 0;
+  for (const c of examCards) {
+    const box = reviews[c.id]?.box ?? 0;
+    score += cardScore(reviews[c.id]);
+    if (box >= 3) counts.solid++;
+    else if (box > 0) counts.learning++;
+    else counts.unseen++;
+  }
+  return { exam, deck, daysLeft, sections, days, readiness: examCards.length ? score / examCards.length : 0, counts };
 }

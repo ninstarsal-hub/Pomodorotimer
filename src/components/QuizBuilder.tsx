@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { MathText } from './MathText';
 import { ArrowLeft, ArrowRight, Check, RotateCcw, X } from 'lucide-react';
 import { useStore } from '../store';
@@ -274,7 +274,7 @@ function ExamRunner({
   const [responses, setResponses] = useState<Record<string, Response>>({});
   const [revealed, setRevealed] = useState(false); // practice: feedback showing for current question
   const [submitted, setSubmitted] = useState(false);
-  const recorded = useRef(false);
+  const recorded = useRef(new Set<string>()); // card ids already fed into spaced repetition
   const q = questions[i];
   const r = q ? responses[q.id] : undefined;
 
@@ -295,20 +295,38 @@ function ExamRunner({
   // Unanswered questions count as missed; only answered explain questions need self-grading.
   const allGraded = questions.every((x) => !responses[x.id] || responses[x.id].correct != null);
 
-  // Feed results into spaced repetition once everything is graded.
+  /**
+   * Feed results into spaced repetition, one card at a time, as soon as all of that card's
+   * answered questions are graded. `finished` = the quiz is over, so unanswered questions
+   * count as missed; otherwise (quitting early) only answered questions count.
+   */
+  const record = useCallback(
+    (finished: boolean) => {
+      const byCard = new Map<string, { card: Card; ok: boolean; pending: boolean; answered: boolean }>();
+      for (const x of questions) {
+        const res = responses[x.id];
+        const e = byCard.get(x.card.id) ?? { card: x.card, ok: true, pending: false, answered: false };
+        if (res) e.answered = true;
+        if (res && res.correct === null) e.pending = true;
+        if (res ? res.correct === false : finished) e.ok = false;
+        byCard.set(x.card.id, e);
+      }
+      const ready = [...byCard.entries()].filter(([id, e]) => !recorded.current.has(id) && !e.pending && (finished || e.answered));
+      if (!ready.length) return;
+      ready.forEach(([id]) => recorded.current.add(id));
+      setReviews((rv) => {
+        const n = { ...rv };
+        for (const [id, e] of ready) n[id] = schedule(rv[id], e.ok ? 'good' : 'again');
+        return n;
+      });
+      for (const [, e] of ready) logReview(e.ok, e.card);
+    },
+    [questions, responses, setReviews, logReview],
+  );
+
   useEffect(() => {
-    if (!submitted || !allGraded || recorded.current) return;
-    recorded.current = true;
-    const byCard = new Map<string, boolean>();
-    const cardById = new Map(questions.map((x) => [x.card.id, x.card]));
-    for (const x of questions) byCard.set(x.card.id, (byCard.get(x.card.id) ?? true) && !!responses[x.id]?.correct);
-    setReviews((rv) => {
-      const n = { ...rv };
-      for (const [id, ok] of byCard) n[id] = schedule(rv[id], ok ? 'good' : 'again');
-      return n;
-    });
-    for (const [id, ok] of byCard) logReview(ok, cardById.get(id));
-  }, [submitted, allGraded, questions, responses, setReviews, logReview]);
+    if (submitted) record(true);
+  }, [submitted, record]);
 
   const where = (c: Card) => {
     const d = decks.find((x) => x.id === c.deckId);
@@ -423,7 +441,11 @@ function ExamRunner({
             </div>
             <div className="muted small">{where(q.card)}</div>
           </div>
-          <button className="icon-btn" onClick={() => (Object.keys(responses).length && !confirm('Quit this quiz? Your answers so far won’t be scored.') ? null : onClose())} aria-label="Quit quiz">
+          <button className="icon-btn" onClick={() => {
+              if (Object.keys(responses).length && !confirm('Quit this quiz? Your answers so far still count toward your progress.')) return;
+              record(false);
+              onClose();
+            }} aria-label="Quit quiz">
             <X size={18} />
           </button>
         </div>
