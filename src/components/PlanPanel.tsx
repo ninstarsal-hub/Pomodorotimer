@@ -4,6 +4,7 @@ import { useStore, sectionKey } from '../store';
 import { buildPlan, addDays, type ExamPlan, type PlanItem } from '../lib/planner';
 import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
 import { uid } from '../lib/storage';
+import { PlanCalendar } from './PlanCalendar';
 
 /** All upcoming exam plans, soonest first. */
 export function usePlans(): ExamPlan[] {
@@ -81,6 +82,7 @@ export function PlanPanel() {
   const [date, setDate] = useState(addDays(14));
   const [deckId, setDeckId] = useState(decks[0]?.id ?? '');
   const [sections, setSections] = useState<string[] | null>(null); // null = all
+  const [view, setView] = useState<'list' | 'calendar'>('list');
   const deck = decks.find((d) => d.id === deckId);
   const deckSecs = deck ? deckSections(deck) : [];
 
@@ -149,9 +151,22 @@ export function PlanPanel() {
         </form>
       )}
 
-      {plans.map((p) => (
-        <ExamCard key={p.exam.id} plan={p} onRemove={() => setExams((xs) => xs.filter((x) => x.id !== p.exam.id))} />
-      ))}
+      {plans.length > 0 && (
+        <div className="segmented" role="tablist" aria-label="Plan view">
+          <button role="tab" aria-selected={view === 'list'} className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')}>
+            Exams
+          </button>
+          <button role="tab" aria-selected={view === 'calendar'} className={view === 'calendar' ? 'is-active' : ''} onClick={() => setView('calendar')}>
+            Calendar
+          </button>
+        </div>
+      )}
+
+      {view === 'calendar' && plans.length > 0 ? (
+        <PlanCalendar plans={plans} />
+      ) : (
+        plans.map((p) => <ExamCard key={p.exam.id} plan={p} onRemove={() => setExams((xs) => xs.filter((x) => x.id !== p.exam.id))} />)
+      )}
 
       {past.length > 0 && (
         <>
