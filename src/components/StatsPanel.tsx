@@ -5,6 +5,7 @@ import { dayKey, fmtMinutes } from '../lib/storage';
 import { deckSections, sectionLabel } from '../lib/quiz';
 import { MISTAKES } from '../lib/problems';
 import { InsightsCard, SessionHistory } from './SessionHistory';
+import { MonthHeatmap } from './MonthHeatmap';
 
 export function StatsPanel() {
   const { sessions, reviewLog, tasks, today, settings } = useStore();
@@ -106,6 +107,8 @@ export function StatsPanel() {
         </div>
         <p className="muted small">All-time: {fmtMinutes(data.total)}</p>
       </section>
+
+      <MonthHeatmap />
 
       {data.subjects.length > 0 && (
         <section className="card">

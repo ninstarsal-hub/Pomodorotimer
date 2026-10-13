@@ -58,7 +58,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - Progress lists your recent sessions with what you worked on in each block, your per-block and overall ratings, and what you ticked. Unrated sessions can be rated later
 - **What works for you:** after 3 rated sessions, Stillpoint looks for patterns: your best time of day, habits that go with better (or worse) focus, what matters most in morning vs. night sessions, and the block where your focus usually drops
 
-**Progress**: minutes focused today, goals, **mastery by section** (weakest first, with a "Quiz my weakest sections" button), your streak, recall accuracy, a chart of the last 7 days, time per subject, your average focus rating, and recent blocks with your recall notes.
+**Progress**: minutes focused today, goals, a monthly focus calendar (each day shaded by minutes, goal days ringed, step back through past months, with totals and a comparison to last month), **mastery by section** (weakest first, with a "Quiz my weakest sections" button), your streak, recall accuracy, a chart of the last 7 days, time per subject, your average focus rating, and recent blocks with your recall notes.
 
 **Customize**: accent colours, illustrated scenes (mountains, café, lakeside, dunes, city night) with optional gentle motion, animated backgrounds (aurora, ember, deep sea, forest, dusk, night sky, rain), an image URL, or your own uploaded image, with sliders for dim and blur.
 

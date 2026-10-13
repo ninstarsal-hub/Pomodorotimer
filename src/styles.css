@@ -3622,3 +3622,116 @@ input[type='date'] {
     justify-content: space-between;
   }
 }
+
+/* ---------- month heatmap ---------- */
+
+.month-nav {
+  align-items: center;
+  gap: 4px;
+}
+.month-nav span {
+  min-width: 110px;
+  text-align: center;
+}
+.month-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+.month-stats > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.month-stats strong {
+  font-size: 18px;
+  font-weight: 500;
+}
+.heat-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+}
+.heat-wd {
+  text-align: center;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+.heat-day {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  outline: none;
+  cursor: default;
+}
+.heat-day.l1 {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
+  color: var(--text-2);
+}
+.heat-day.l2 {
+  background: color-mix(in srgb, var(--accent) 42%, var(--surface-2));
+  color: var(--text);
+}
+.heat-day.l3 {
+  background: color-mix(in srgb, var(--accent) 66%, var(--surface-2));
+  color: #141416;
+}
+.heat-day.l4 {
+  background: var(--accent);
+  color: #141416;
+}
+.heat-day.is-goal {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #fff 70%, var(--accent));
+}
+.heat-day.is-today {
+  border-color: var(--text-2);
+}
+.heat-day.is-future {
+  opacity: 0.35;
+}
+.heat-day.is-hover,
+.heat-day:focus-visible {
+  border-color: var(--text);
+}
+.heat-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.heat-detail {
+  margin: 0;
+  min-height: 1.4em;
+}
+.heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.heat-key {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--surface-2);
+}
+.heat-key.l1 {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-2));
+}
+.heat-key.l2 {
+  background: color-mix(in srgb, var(--accent) 42%, var(--surface-2));
+}
+.heat-key.l3 {
+  background: color-mix(in srgb, var(--accent) 66%, var(--surface-2));
+}
+.heat-key.l4 {
+  background: var(--accent);
+}
+.heat-ring-key {
+  margin-left: 10px;
+}
