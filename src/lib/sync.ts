@@ -171,15 +171,16 @@ async function syncFiles() {
   const uid = state.user.id;
   const remote = new Set(await backend.listFiles(uid));
   const local = new Set(await listBlobKeys());
+  // One bad file (too big, not an image) shouldn't stop everything else syncing.
   for (const k of remote)
     if (!local.has(k)) {
-      const b = await backend.download(uid, k);
+      const b = await backend.download(uid, k).catch(() => null);
       if (b) await putBlobFromRemote(k, b);
     }
   for (const k of local)
     if (!remote.has(k)) {
       const b = await getBlob(k);
-      if (b) await backend.upload(uid, k, b);
+      if (b && b.type.startsWith('image/') && b.size <= 10 * 1024 * 1024) await backend.upload(uid, k, b).catch(() => {});
     }
 }
 

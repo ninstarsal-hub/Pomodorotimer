@@ -16,6 +16,14 @@ The code is already in the app; it stays hidden until these two environment vari
 1. In the new project, open **SQL Editor** → **New query**.
 2. Paste the whole contents of [`supabase/schema.sql`](supabase/schema.sql) and click **Run**. It should say "Success".
 
+## 2b. Security hardening (projects set up before this was added)
+If you created your tables before `schema.sql` included limits, also run
+[`supabase/hardening.sql`](supabase/hardening.sql) once in the SQL Editor. It adds a 10 MB/25 MB data cap,
+images-only 10 MB file uploads, and tightens the file-rename rule.
+
+Then, since Stillpoint only uses Google sign-in, turn off the other sign-up methods:
+**Authentication → Sign In / Providers → Email → turn off "Enable Email provider"** (and leave anonymous sign-ins off).
+
 ## 3. Set up Google sign-in
 1. In Supabase, open **Authentication → Sign In / Providers → Google**, and copy the **Callback URL** shown there
    (it looks like `https://abcd1234.supabase.co/auth/v1/callback`). Leave this tab open.

@@ -21,7 +21,8 @@ function render(text: string, k: Katex) {
     html += escape(text.slice(last, m.index));
     const display = m[1] !== undefined || m[2] !== undefined;
     const tex = m[1] ?? m[2] ?? m[3] ?? m[4];
-    html += k.renderToString(tex, { displayMode: display, throwOnError: false, strict: 'ignore' });
+    // trust:false keeps \href, \url, \includegraphics and raw HTML commands disabled — notes can come from shared links.
+    html += k.renderToString(tex, { displayMode: display, throwOnError: false, strict: 'ignore', trust: false, maxSize: 20, maxExpand: 500 });
     last = m.index! + m[0].length;
   }
   return html + escape(text.slice(last));

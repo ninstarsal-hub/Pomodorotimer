@@ -22,6 +22,7 @@ create policy "own data: delete" on public.user_data for delete to authenticated
 
 -- Save newer entries (per key, newest edit wins) and return everything that changed since `since`.
 -- Entry shape: { "v": "<json text>", "t": <ms when edited on the device>, "s": <ms when the server saved it> }
+-- Limits: 10 MB per sync, 25 MB per account.
 create or replace function public.merge_user_data(patch jsonb, since bigint default 0)
 returns jsonb
 language plpgsql
@@ -39,15 +40,25 @@ begin
   if auth.uid() is null then
     raise exception 'not signed in';
   end if;
+  if octet_length(coalesce(patch, '{}'::jsonb)::text) > 10485760 then
+    raise exception 'Too much data in one sync (10 MB limit)';
+  end if;
 
   insert into public.user_data (user_id) values (auth.uid()) on conflict (user_id) do nothing;
   select data into cur from public.user_data where user_id = auth.uid() for update;
 
   for k, v in select * from jsonb_each(coalesce(patch, '{}'::jsonb)) loop
+    if jsonb_typeof(v -> 'v') <> 'string' or jsonb_typeof(v -> 't') <> 'number' then
+      continue; -- ignore malformed entries
+    end if;
     if cur -> k is null or (cur -> k ->> 't')::bigint < (v ->> 't')::bigint then
       cur := jsonb_set(cur, array[k], jsonb_build_object('v', v -> 'v', 't', v -> 't', 's', now_ms));
     end if;
   end loop;
+
+  if octet_length(cur::text) > 26214400 then
+    raise exception 'Account storage limit reached (25 MB)';
+  end if;
 
   update public.user_data set data = cur, updated_at = now() where user_id = auth.uid();
 
@@ -66,9 +77,9 @@ revoke all on function public.merge_user_data(jsonb, bigint) from public, anon;
 grant execute on function public.merge_user_data(jsonb, bigint) to authenticated;
 
 -- Private bucket for images (diagrams, custom backgrounds). Files live under <user id>/...
-insert into storage.buckets (id, name, public)
-values ('user-files', 'user-files', false)
-on conflict (id) do nothing;
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('user-files', 'user-files', false, 10485760, array['image/*'])
+on conflict (id) do update set file_size_limit = excluded.file_size_limit, allowed_mime_types = excluded.allowed_mime_types;
 
 drop policy if exists "own files: read" on storage.objects;
 drop policy if exists "own files: insert" on storage.objects;
@@ -79,7 +90,8 @@ create policy "own files: read" on storage.objects for select to authenticated
 create policy "own files: insert" on storage.objects for insert to authenticated
   with check (bucket_id = 'user-files' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "own files: update" on storage.objects for update to authenticated
-  using (bucket_id = 'user-files' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'user-files' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'user-files' and (storage.foldername(name))[1] = auth.uid()::text);
 create policy "own files: delete" on storage.objects for delete to authenticated
   using (bucket_id = 'user-files' and (storage.foldername(name))[1] = auth.uid()::text);
 
