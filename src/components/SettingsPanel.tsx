@@ -67,6 +67,7 @@ export function SettingsPanel() {
         <Toggle label="Auto-start breaks" checked={settings.autoStartBreaks} onChange={(v) => set('autoStartBreaks', v)} />
         <Toggle label="Auto-start next focus block" checked={settings.autoStartFocus} onChange={(v) => set('autoStartFocus', v)} />
         <Toggle label="Recommended break plan (doodle → walk → rest → recharge)" checked={settings.breakPlan} onChange={(v) => set('breakPlan', v)} />
+        <Toggle label="Notice time spent in other tabs during focus (you choose whether it was studying)" checked={settings.awayTracking} onChange={(v) => set('awayTracking', v)} />
         <Toggle label="Desktop notifications" checked={settings.notifications} onChange={(v) => set('notifications', v)} />
         <label className="slider-row">
           <span className="small">Chime</span>

@@ -26,6 +26,9 @@ interface Props {
   onOpenSound: () => void;
   /** Start the set over at block 1. */
   onResetSet: () => void;
+  /** This block uses other apps on purpose (shown when away tracking is on). */
+  otherApps: boolean;
+  onOtherApps?: (v: boolean) => void;
   children?: React.ReactNode;
 }
 
@@ -108,6 +111,12 @@ export function TimerView(p: Props) {
             <button className="link-btn quiz-link" onClick={() => setBuilderOpen(true)}>
               Test yourself — generate a quiz
             </button>
+          )}
+          {p.onOtherApps && (
+            <label className="other-apps" title="Time on other tabs or apps during this block counts as studying, not distraction">
+              <input type="checkbox" checked={p.otherApps} onChange={(e) => p.onOtherApps!(e.target.checked)} />
+              <span>Studying in other apps too (Claude, Docs, textbook…)</span>
+            </label>
           )}
           <input
             className="intention"

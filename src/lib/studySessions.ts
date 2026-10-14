@@ -111,6 +111,22 @@ export function sessionInsights(sessions: StudySession[], blocks: Session[]): In
       out.push({ kind: 'factor-time', text: `In ${t.toLowerCase()} sessions, “${factorLabel(top.id)}” makes the biggest difference.`, detail: `${fmt(top.withAvg)} vs ${fmt(top.withoutAvg)}.` });
   }
 
+  // Time lost to other tabs (only what you marked as a distraction — studying elsewhere never counts).
+  const ratedBlocks = blocks.filter((b) => b.rating);
+  const distracted = ratedBlocks.filter((b) => b.away?.kind === 'distracted');
+  const clean = ratedBlocks.filter((b) => !b.away || b.away.kind === 'study');
+  if (distracted.length >= 3 && clean.length >= 3) {
+    const d = avg(distracted.map((b) => b.rating!));
+    const c = avg(clean.map((b) => b.rating!));
+    if (c - d >= 0.5)
+      out.push({ kind: 'negative', text: 'Blocks where you drifted to other tabs rate lower.', detail: `${fmt(d)} vs ${fmt(c)} when you stayed on task. Phone or tabs away might help.` });
+  }
+  const awayByTime = new Map<TimeOfDay, number[]>();
+  for (const b of blocks.filter((x) => x.away?.kind === 'distracted')) awayByTime.set(timeOfDay(b.at), [...(awayByTime.get(timeOfDay(b.at)) ?? []), b.away!.ms]);
+  const worstTime = [...awayByTime].filter(([, v]) => v.length >= 3).sort((a, b) => b[1].length - a[1].length)[0];
+  if (worstTime)
+    out.push({ kind: 'negative', text: `Most of your distracted blocks happen in the ${worstTime[0].toLowerCase()}.`, detail: `${worstTime[1].length} blocks, about ${Math.round(avg(worstTime[1]) / 60_000)} min away each.` });
+
   // Where focus fades within a session, from your per-block ratings.
   const byIndex: number[][] = [];
   for (const s of sessions) {

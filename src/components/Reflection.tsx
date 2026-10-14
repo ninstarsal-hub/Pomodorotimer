@@ -37,6 +37,7 @@ export function ReflectionModal({ sessionId, onClose }: { sessionId: string; onC
             You set out to: <em>“{session.intention}”</em>
           </p>
         )}
+        {session.away && <AwayNote sessionId={session.id} away={session.away} />}
         <div className="field-label">How focused were you?</div>
         <div className="rating">
           {RATINGS.map((r, i) => (
@@ -84,6 +85,33 @@ export function RecallModal({ initial, onSave, onClose }: { initial: string; onS
           Save & back to work
         </button>
       </div>
+    </div>
+  );
+}
+
+const mins = (ms: number) => Math.max(1, Math.round(ms / 60_000));
+
+/** "You were away 6 min (3 times)" — and you say whether that was studying elsewhere or a distraction. */
+function AwayNote({ sessionId, away }: { sessionId: string; away: NonNullable<import('../lib/types').Session['away']> }) {
+  const { setSessions } = useStore();
+  const mark = (kind: 'study' | 'distracted') => setSessions((ss) => ss.map((s) => (s.id === sessionId && s.away ? { ...s, away: { ...s.away, kind } } : s)));
+  return (
+    <div className="away-note">
+      <p className="small">
+        You were in other tabs or apps for <strong>{mins(away.ms)} min</strong> ({away.count} time{away.count === 1 ? '' : 's'}).
+        {away.kind === 'study' && <span className="muted"> Marked as studying elsewhere.</span>}
+      </p>
+      {away.kind !== 'study' && (
+        <div className="row wrap">
+          <span className="muted small">Was that…</span>
+          <button className="chip" onClick={() => mark('study')}>
+            Studying elsewhere
+          </button>
+          <button className={`chip ${away.kind === 'distracted' ? 'is-active' : ''}`} onClick={() => mark('distracted')}>
+            A distraction
+          </button>
+        </div>
+      )}
     </div>
   );
 }

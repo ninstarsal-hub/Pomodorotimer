@@ -32,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   beatVolume: 0.5,
   breakPlan: true,
   sceneMotion: true,
+  awayTracking: true,
 };
 
 export const sectionKey = (deckId: string, section: string) => `${deckId}\u0000${section}`;

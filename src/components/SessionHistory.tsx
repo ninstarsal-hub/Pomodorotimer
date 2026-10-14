@@ -95,6 +95,7 @@ export function SessionHistory() {
                                 {[t?.title, b.section].filter(Boolean).join(' · ') || b.intention || 'Focus block'}
                                 {b.recall && <span className="muted small recall-note"> — “{b.recall}”</span>}
                               </span>
+                              {b.away && <span className={`muted small away-tag ${b.away.kind ?? ''}`}>{b.away.kind === 'study' ? 'other apps' : 'away'} {Math.round(b.away.ms / 60_000)}m</span>}
                               <span className="muted small">{b.rating ? `${b.rating}/5` : '—'}</span>
                             </li>
                           );

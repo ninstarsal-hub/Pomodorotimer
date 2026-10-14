@@ -31,6 +31,8 @@ export interface Settings {
   breakPlan: boolean;
   /** Gentle motion in illustrated scene backgrounds (clouds, steam, twinkle). */
   sceneMotion: boolean;
+  /** Notice when you leave the Stillpoint tab during focus (you decide whether it was studying). */
+  awayTracking: boolean;
 }
 
 export interface BackgroundSetting {
@@ -65,6 +67,8 @@ export interface Session {
   studySessionId?: string;
   /** "Biology · Session 3" — the section picked under the timer, if any. */
   section?: string;
+  /** Time away from the Stillpoint tab: how often, how long, and whether it was studying (your call). */
+  away?: { count: number; ms: number; kind?: 'study' | 'distracted' };
 }
 
 /** A sitting of one or more focus blocks — e.g. a morning session and a night session on the same day. */
@@ -151,4 +155,11 @@ export interface TimerState {
   started: boolean;
   /** Free-recall notes written at the checkpoint, attached to the session. */
   recall: string;
+  /** This block uses other apps on purpose (Claude, Docs, a textbook site…), so time away isn't a distraction. */
+  otherApps?: boolean;
+  /** Time spent away from the Stillpoint tab during this focus block. */
+  awayCount?: number;
+  awayMs?: number;
+  /** When the tab was last hidden (null = visible). */
+  awaySince?: number | null;
 }

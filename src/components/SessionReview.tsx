@@ -64,6 +64,7 @@ export function SessionReview({ id, ending, onDone, onClose }: { id: string; end
                 <li key={b.id}>
                   <span className="muted small">Block {i + 1}</span>
                   <span className="grow truncate">{what}</span>
+                  {b.away && <span className={`muted small away-tag ${b.away.kind ?? ''}`}>{b.away.kind === 'study' ? 'other apps' : 'away'} {Math.round(b.away.ms / 60_000)}m</span>}
                   <span className="muted small">{b.rating ? `${b.rating}/5` : '—'}</span>
                 </li>
               );

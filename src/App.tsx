@@ -154,6 +154,11 @@ export default function App() {
           sessionId = uid();
           const at = Date.now();
           const studySessionId = store.ensureStudySession().id;
+          // Include a stretch away that's still open (e.g. the block ended while you were in another tab).
+          const openAway = t.awaySince && Date.now() - t.awaySince >= 10_000 ? Date.now() - t.awaySince : 0;
+          const awayMs = (t.awayMs ?? 0) + openAway;
+          const awayCount = (t.awayCount ?? 0) + (openAway ? 1 : 0);
+          const away = awayMs >= 60_000 ? { count: awayCount, ms: awayMs, kind: t.otherApps ? ('study' as const) : undefined } : undefined;
           store.touchStudySession(studySessionId);
           const deck = studyingNow ? store.decks.find((d) => d.id === studyingNow.deckId) : undefined;
           const section = deck ? [deck.title, studyingNow!.section ? sectionLabel(studyingNow!.section, deck) : ''].filter(Boolean).join(' · ') : undefined;
@@ -170,6 +175,7 @@ export default function App() {
               recall: t.recall || undefined,
               studySessionId,
               section,
+              ...(away ? { away } : {}),
             },
           ]);
           if (activeTask && !skipped) setTasks((ts) => ts.map((x) => (x.id === activeTask.id ? { ...x, pomos: x.pomos + 1 } : x)));
@@ -181,7 +187,7 @@ export default function App() {
           notify('Focus block complete', `Nice work. ${MODE_LABEL[next]} — ${next === 'long' ? settings.longMin : settings.shortMin} min.`, settings.notifications);
           if (settings.reflectAfterFocus && sessionId) setReflectionId(sessionId);
         }
-        goTo(next, settings.autoStartBreaks && !skipped, { cycle, intention: t.intention, recall: '' });
+        goTo(next, settings.autoStartBreaks && !skipped, { cycle, intention: t.intention, recall: '', awayCount: 0, awayMs: 0, awaySince: null });
       } else {
         if (!skipped) {
           chime(settings.chimeVolume);
@@ -236,7 +242,7 @@ export default function App() {
   }, [setTimer]);
 
   const reset = useCallback(() => {
-    setTimer((t) => ({ ...t, running: false, started: false, endAt: null, remaining: durations[t.mode], checkpointFired: false }));
+    setTimer((t) => ({ ...t, running: false, started: false, endAt: null, remaining: durations[t.mode], checkpointFired: false, awayCount: 0, awayMs: 0, awaySince: null }));
     setCheckpoint(false);
   }, [durations, setTimer]);
 
@@ -266,6 +272,25 @@ export default function App() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timer.mode, timer.running]);
+
+  // Away tracking: time spent on other tabs/apps during a running focus block (glances under 10s don't count).
+  useEffect(() => {
+    if (!settings.awayTracking || timer.mode !== 'focus' || !timer.running) return;
+    // A stretch "away" left open by a pause or reload doesn't count once you're back.
+    if (!document.hidden) setTimer((t) => (t.awaySince ? { ...t, awaySince: null } : t));
+    const onVis = () => {
+      const now = Date.now();
+      if (document.hidden) setTimer((t) => (t.awaySince ? t : { ...t, awaySince: now }));
+      else
+        setTimer((t) => {
+          if (!t.awaySince) return t;
+          const ms = now - t.awaySince;
+          return ms < 10_000 ? { ...t, awaySince: null } : { ...t, awaySince: null, awayCount: (t.awayCount ?? 0) + 1, awayMs: (t.awayMs ?? 0) + ms };
+        });
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [settings.awayTracking, timer.mode, timer.running, setTimer]);
 
   // Coming back after a long gap (new day, or hours later): the old set is over, so start at block 1 in focus mode.
   useEffect(() => {
@@ -363,6 +388,8 @@ export default function App() {
           onOpenToday={() => setPanel('today')}
           onOpenSound={() => setPanel('sound')}
           onResetSet={() => goTo('focus', false, { cycle: 0, intention: '', recall: '' })}
+          otherApps={!!timer.otherApps}
+          onOtherApps={settings.awayTracking ? (v) => setTimer((t) => ({ ...t, otherApps: v })) : undefined}
         >
           {!timer.running && <Agenda onOpenPlan={() => setPanel('plan')} />}
         </TimerView>
