@@ -31,8 +31,9 @@ export interface SyncBackend {
   deleteAccount(): Promise<void>;
 }
 
-const URL_ = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const KEY_ = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+// Accept the URL with or without the /rest/v1/ ending Supabase shows on its Data API page.
+const URL_ = (import.meta.env.VITE_SUPABASE_URL as string | undefined)?.trim().replace(/\/rest\/v1\/?$/, '').replace(/\/+$/, '');
+const KEY_ = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined)?.trim();
 type MockFactory = () => SyncBackend;
 const mock = (globalThis as { __STILLPOINT_SYNC_MOCK__?: MockFactory }).__STILLPOINT_SYNC_MOCK__;
 
