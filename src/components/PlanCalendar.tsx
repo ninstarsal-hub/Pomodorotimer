@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { CalendarPlus, ChevronLeft, ChevronRight, Flag } from 'lucide-react';
 import { downloadIcs } from '../lib/ics';
+import { useStore } from '../store';
 import { addDays, type ExamPlan, type PlanItem } from '../lib/planner';
 import { dayKey } from '../lib/storage';
 import { PlanItemRow } from './PlanPanel';
@@ -8,6 +9,8 @@ import { PlanItemRow } from './PlanPanel';
 interface DayInfo {
   items: (PlanItem & { examTitle: string })[];
   exams: string[];
+  /** Assignments due that day. */
+  due: string[];
 }
 
 const KIND_LABEL: Record<PlanItem['kind'], string> = { learn: 'Learn', review: 'Review', final: 'Final review' };
@@ -16,6 +19,7 @@ const WEEKDAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 /** Month view of every exam plan: what to learn or review on which day, and when each exam is. */
 export function PlanCalendar({ plans }: { plans: ExamPlan[] }) {
   const today = dayKey();
+  const { tasks } = useStore();
   const [selected, setSelected] = useState(today);
   const now = new Date();
   const [month, setMonth] = useState({ y: now.getFullYear(), m: now.getMonth() });
@@ -24,7 +28,7 @@ export function PlanCalendar({ plans }: { plans: ExamPlan[] }) {
   const byDay = useMemo(() => {
     const map = new Map<string, DayInfo>();
     const get = (k: string) => {
-      if (!map.has(k)) map.set(k, { items: [], exams: [] });
+      if (!map.has(k)) map.set(k, { items: [], exams: [], due: [] });
       return map.get(k)!;
     };
     for (const p of plans) {
@@ -33,10 +37,11 @@ export function PlanCalendar({ plans }: { plans: ExamPlan[] }) {
       });
       get(p.exam.date).exams.push(p.exam.title);
     }
+    for (const t of tasks) if (t.due && !t.done) get(t.due).due.push(t.title);
     return map;
-  }, [plans]);
+  }, [plans, tasks]);
 
-  const lastExam = plans.reduce((max, p) => (p.exam.date > max ? p.exam.date : max), today);
+  const lastExam = [...plans.map((p) => p.exam.date), ...tasks.filter((t) => t.due && !t.done).map((t) => t.due!)].reduce((max, d) => (d > max ? d : max), today);
   const [ly, lm] = lastExam.split('-').map(Number);
   const canPrev = month.y > now.getFullYear() || (month.y === now.getFullYear() && month.m > now.getMonth());
   const canNext = month.y < ly || (month.y === ly && month.m < lm - 1);
@@ -79,11 +84,12 @@ export function PlanCalendar({ plans }: { plans: ExamPlan[] }) {
               key={k}
               className={`cal-day ${k === today ? 'is-today' : ''} ${k === selected ? 'is-selected' : ''} ${past ? 'is-past' : ''} ${info?.exams.length ? 'is-exam' : ''}`}
               onClick={() => setSelected(k)}
-              aria-label={`${k}${info?.exams.length ? `, exam: ${info.exams.join(', ')}` : ''}${info?.items.length ? `, ${info.items.length} planned` : ''}`}
+              aria-label={`${k}${info?.exams.length ? `, exam: ${info.exams.join(', ')}` : ''}${info?.due.length ? `, due: ${info.due.join(', ')}` : ''}${info?.items.length ? `, ${info.items.length} planned` : ''}`}
             >
               <span className="cal-num">{Number(k.slice(8))}</span>
               <span className="cal-dots">
                 {info?.exams.length ? <Flag size={9} className="cal-flag" /> : null}
+                {info?.due.length ? <i className="due-mark" /> : null}
                 {(['learn', 'review', 'final'] as const).filter((x) => kinds.has(x)).map((x) => (
                   <i key={x} className={`dot kind-${x}`} />
                 ))}
@@ -106,6 +112,9 @@ export function PlanCalendar({ plans }: { plans: ExamPlan[] }) {
         <span>
           <Flag size={10} className="cal-flag" /> Exam
         </span>
+        <span>
+          <i className="due-mark" /> Assignment due
+        </span>
       </div>
 
       <div className="cal-detail">
@@ -115,6 +124,11 @@ export function PlanCalendar({ plans }: { plans: ExamPlan[] }) {
         {sel?.exams.map((t) => (
           <p key={t} className="cal-exam">
             <Flag size={12} /> {t}
+          </p>
+        ))}
+        {sel?.due.map((t) => (
+          <p key={t} className="cal-due">
+            <i className="due-mark" /> Due: {t}
           </p>
         ))}
         {sel?.items.length ? (
@@ -132,13 +146,13 @@ export function PlanCalendar({ plans }: { plans: ExamPlan[] }) {
             )}
           </ul>
         ) : (
-          !sel?.exams.length && <p className="muted small">{selected < today ? 'Past day.' : 'Nothing planned — a free day, or a good one to get ahead.'}</p>
+          !sel?.exams.length && !sel?.due.length && <p className="muted small">{selected < today ? 'Past day.' : 'Nothing planned — a free day, or a good one to get ahead.'}</p>
         )}
         {selected > today && sel?.items.length ? <p className="muted small">The plan updates every day as you study, so future days can shift a little.</p> : null}
       </div>
 
       <div className="cal-export">
-        <button className="btn small" onClick={() => downloadIcs(plans)}>
+        <button className="btn small" onClick={() => downloadIcs(plans, tasks)}>
           <CalendarPlus size={13} /> Add to Google / Apple Calendar
         </button>
         <p className="muted small">

@@ -1,4 +1,5 @@
 import { addDays, type ExamPlan } from './planner';
+import type { Task } from './types';
 
 /* Export exam plans as an .ics calendar file (Google Calendar, Apple Calendar, Outlook). */
 
@@ -24,7 +25,7 @@ const fold = (line: string) => {
   return out.join('\r\n');
 };
 
-export function buildIcs(plans: ExamPlan[]) {
+export function buildIcs(plans: ExamPlan[], tasks: Task[] = []) {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
   const events: string[][] = [];
   const allDay = (uid: string, date: string, summary: string, description: string, remind: boolean) => {
@@ -54,12 +55,13 @@ export function buildIcs(plans: ExamPlan[]) {
     });
     allDay(`${p.exam.id}-exam`, p.exam.date, `📝 ${p.exam.title}`, 'Exam day. Good luck!', true);
   }
+  for (const t of tasks) if (t.due && !t.done) allDay(`${t.id}-due`, t.due, `📌 Due: ${t.title}`, `${t.subject ? t.subject + ' · ' : ''}Assignment due. Tracked in Stillpoint.`, true);
 
   return ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Stillpoint//Study plan//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:Stillpoint study plan', ...events.flat(), 'END:VCALENDAR'].map(fold).join('\r\n') + '\r\n';
 }
 
-export function downloadIcs(plans: ExamPlan[]) {
-  const url = URL.createObjectURL(new Blob([buildIcs(plans)], { type: 'text/calendar;charset=utf-8' }));
+export function downloadIcs(plans: ExamPlan[], tasks: Task[] = []) {
+  const url = URL.createObjectURL(new Blob([buildIcs(plans, tasks)], { type: 'text/calendar;charset=utf-8' }));
   const a = document.createElement('a');
   a.href = url;
   a.download = 'stillpoint-study-plan.ics';

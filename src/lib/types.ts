@@ -51,6 +51,10 @@ export interface Task {
   day: string;
   deckId?: string;
   createdAt: number;
+  /** YYYY-MM-DD the assignment is due; due-dated tasks stay on Today until done. */
+  due?: string;
+  /** Day it was marked done. */
+  doneDay?: string;
 }
 
 export interface Session {

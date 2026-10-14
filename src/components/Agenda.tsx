@@ -1,4 +1,5 @@
-import { CalendarDays, Repeat, RotateCcw } from 'lucide-react';
+import { CalendarClock, CalendarDays, Repeat, RotateCcw } from 'lucide-react';
+import { upcoming } from '../lib/assignments';
 import { useDueProblems } from './PracticePanel';
 import { useStore } from '../store';
 import { buildQuiz } from '../lib/quiz';
@@ -6,7 +7,7 @@ import { CramButton, PlanItemRow, canCram, dueSummary, usePlanActions, usePlans 
 
 /** Main-screen "what to do today": due reviews + today's exam-plan tasks. */
 export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
-  const { unlocked, reviews, setQuiz, setPracticeRun } = useStore();
+  const { unlocked, reviews, setQuiz, setPracticeRun, tasks, setActiveTaskId, activeTaskId } = useStore();
   const dueProblems = useDueProblems();
   const plans = usePlans();
   const { isDone } = usePlanActions();
@@ -15,7 +16,8 @@ export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
   const todays = plans.flatMap((p) => p.days[0].map((it) => ({ it, plan: p })));
   const open = todays.filter((t) => !isDone(t.it));
   const next = plans[0];
-  if (!due.length && !next && !dueProblems.length) return null;
+  const dueSoon = upcoming(tasks).filter((d) => d.daysLeft <= 2);
+  if (!due.length && !next && !dueProblems.length && !dueSoon.length) return null;
 
   return (
     <div className="agenda fade-zen">
@@ -36,6 +38,23 @@ export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
           </button>
         </div>
       )}
+      {dueSoon.map((d) => (
+        <div key={d.task.id} className={`agenda-row due-soon ${d.daysLeft < 0 ? 'is-overdue' : ''}`}>
+          <CalendarClock size={14} className="accent" />
+          <span className="grow">
+            <strong>{d.task.title}</strong>{' '}
+            <span className="muted">
+              · {d.label}
+              {d.blocksLeft > 0 ? ` · ${d.blocksLeft} block${d.blocksLeft === 1 ? '' : 's'} left` : ''}
+            </span>
+          </span>
+          {d.task.id !== activeTaskId && d.blocksLeft > 0 && (
+            <button className="btn small" onClick={() => setActiveTaskId(d.task.id)}>
+              Work on it
+            </button>
+          )}
+        </div>
+      ))}
       {dueProblems.length > 0 && (
         <div className="agenda-row">
           <Repeat size={14} className="accent" />

@@ -24,9 +24,11 @@ import { PlanPanel } from './components/PlanPanel';
 import { GoalStat } from './components/GoalStat';
 import { ExamWidget } from './components/ExamWidget';
 import { Welcome } from './components/Welcome';
+import { SharedImport } from './components/ShareNotes';
 import { SessionReview } from './components/SessionReview';
 import { SessionPill } from './components/SessionPill';
 import { sessionTitle } from './lib/studySessions';
+import { isOnToday } from './lib/assignments';
 import { BackupNudge, InstallButton, UpdateToast } from './components/InstallUI';
 import { PracticePanel } from './components/PracticePanel';
 import { PracticeRunner } from './components/PracticeRunner';
@@ -65,6 +67,7 @@ export default function App() {
   const [reflectionId, setReflectionId] = useState<string | null>(null);
   const [recallOpen, setRecallOpen] = useState(false);
   const [review, setReview] = useState<{ id: string; ending: boolean } | null>(null);
+  const [shareOpen, setShareOpen] = useState(() => location.hash.startsWith('#share='));
 
   // Panels open just below the top bar, whose height changes (wrapping on phones, exam countdown).
   const topbarRef = useRef<HTMLElement>(null);
@@ -340,7 +343,7 @@ export default function App() {
   }, [timer.running, start, pause, reset, finishPhase, store.quiz, store.builderOpen, store.practiceRun, reflectionId, recallOpen]);
 
   const todayMinutes = sessions.filter((s) => s.day === store.today).reduce((a, s) => a + s.minutes, 0);
-  const openTasks = tasks.filter((t) => !t.done && t.day === store.today);
+  const openTasks = tasks.filter((t) => !t.done && isOnToday(t, store.today));
 
   return (
     <div className={`app ${zen ? 'is-zen' : ''} ${panel ? 'has-panel' : ''} mode-${timer.mode}`}>
@@ -467,7 +470,16 @@ export default function App() {
           }}
         />
       )}
-      <Welcome onOpen={setPanel} />
+      {shareOpen ? (
+        <SharedImport
+          onDone={(added) => {
+            setShareOpen(false);
+            if (added) setPanel('notes');
+          }}
+        />
+      ) : (
+        <Welcome onOpen={setPanel} />
+      )}
       {review && (
         <SessionReview
           id={review.id}

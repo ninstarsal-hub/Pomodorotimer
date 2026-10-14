@@ -1,6 +1,8 @@
 import { useMemo, useRef, useState } from 'react';
 import { MathText } from './MathText';
-import { Brain, ChevronDown, FileUp, ListChecks, Pencil, Plus, Shuffle, Trash2 } from 'lucide-react';
+import { Brain, ChevronDown, FileUp, ListChecks, Pencil, Plus, Share2, Shuffle, Trash2 } from 'lucide-react';
+import { fromShared, readSharedFile } from '../lib/share';
+import { ShareBox } from './ShareNotes';
 import { useStore } from '../store';
 import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
 import { uid } from '../lib/storage';
@@ -52,6 +54,11 @@ export function NotesPanel() {
     for (const file of Array.from(files)) {
       setImporting(file.name);
       try {
+        if (/\.stillpoint\.json$/i.test(file.name)) {
+          const d = fromShared(await readSharedFile(file));
+          setDecks((ds) => [d, ...ds]);
+          continue;
+        }
         const text = await extractText(file);
         if (!text) throw new ImportError('No text found in this file.');
         create(text, titleFromFile(file), '', false);
@@ -197,6 +204,7 @@ function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
   const { setDecks, cards } = useStore();
   const shown = cards.filter((c) => c.deckId === deck.id);
   const [showCards, setShowCards] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const update = (patch: Partial<Deck>) => setDecks((ds) => ds.map((d) => (d.id === deck.id ? { ...d, ...patch } : d)));
 
   return (
@@ -243,11 +251,15 @@ function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
           {showCards ? 'Hide questions' : `Review & edit ${shown.length} questions`}
         </button>
         <div className="row">
+          <button className="btn small" onClick={() => setSharing((s) => !s)}>
+            <Share2 size={14} /> Share
+          </button>
           <button className="btn small danger" onClick={onRemove}>
             <Trash2 size={14} /> Delete
           </button>
         </div>
       </div>
+      {sharing && <ShareBox deck={deck} />}
       {showCards && <QuestionEditor deck={deck} cards={shown} update={update} />}
     </div>
   );

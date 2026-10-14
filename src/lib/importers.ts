@@ -3,7 +3,7 @@
  * Heavy parsers are loaded on demand so they don't slow down the first page load.
  */
 
-export const ACCEPTED_FILES = '.pdf,.docx,.pptx,.txt,.md,.markdown,.csv,.rtf,.html,.htm,application/pdf,text/plain,text/markdown';
+export const ACCEPTED_FILES = '.pdf,.docx,.json,.pptx,.txt,.md,.markdown,.csv,.rtf,.html,.htm,application/pdf,text/plain,text/markdown';
 
 export class ImportError extends Error {}
 

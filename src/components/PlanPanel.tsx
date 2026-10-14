@@ -100,13 +100,14 @@ export function PlanItemRow({ it, compact = false }: { it: PlanItem; compact?: b
 }
 
 export function PlanPanel() {
-  const { decks, exams, setExams } = useStore();
+  const { decks, exams, setExams, tasks } = useStore();
   const plans = usePlans();
   const [title, setTitle] = useState('');
   const [date, setDate] = useState(addDays(14));
   const [deckId, setDeckId] = useState(decks[0]?.id ?? '');
   const [sections, setSections] = useState<string[] | null>(null); // null = all
   const [view, setView] = useState<'list' | 'calendar'>('list');
+  const hasDue = tasks.some((t) => t.due && !t.done);
   const deck = decks.find((d) => d.id === deckId);
   const deckSecs = deck ? deckSections(deck) : [];
 
@@ -175,7 +176,7 @@ export function PlanPanel() {
         </form>
       )}
 
-      {plans.length > 0 && (
+      {(plans.length > 0 || hasDue) && (
         <div className="segmented" role="tablist" aria-label="Plan view">
           <button role="tab" aria-selected={view === 'list'} className={view === 'list' ? 'is-active' : ''} onClick={() => setView('list')}>
             Exams
@@ -186,7 +187,7 @@ export function PlanPanel() {
         </div>
       )}
 
-      {view === 'calendar' && plans.length > 0 ? (
+      {view === 'calendar' && (plans.length > 0 || hasDue) ? (
         <PlanCalendar plans={plans} />
       ) : (
         plans.map((p) => <ExamCard key={p.exam.id} plan={p} onRemove={() => setExams((xs) => xs.filter((x) => x.id !== p.exam.id))} />)

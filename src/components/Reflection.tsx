@@ -16,7 +16,7 @@ export function ReflectionModal({ sessionId, onClose }: { sessionId: string; onC
 
   const save = () => {
     setSessions((ss) => ss.map((s) => (s.id === sessionId ? { ...s, rating: rating ?? undefined, recall: [s.recall, summary.trim()].filter(Boolean).join('\n') || undefined } : s)));
-    if (finished && task) setTasks((ts) => ts.map((t) => (t.id === task.id ? { ...t, done: true } : t)));
+    if (finished && task) setTasks((ts) => ts.map((t) => (t.id === task.id ? { ...t, done: true, doneDay: session.day } : t)));
     onClose();
   };
 
