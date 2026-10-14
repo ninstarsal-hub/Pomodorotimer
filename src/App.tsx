@@ -267,6 +267,14 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timer.mode, timer.running]);
 
+  // Coming back after a long gap (new day, or hours later): the old set is over, so start at block 1 in focus mode.
+  useEffect(() => {
+    if (timer.running || store.liveStudy) return;
+    // Only an untouched timer — never one you've paused mid-block or mid-break.
+    if (!timer.started && (timer.cycle !== 0 || timer.mode !== 'focus')) goTo('focus', false, { cycle: 0, intention: '', recall: '' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store.liveStudy?.id, timer.running]);
+
   // Note tools used this session so the end-of-session review can pre-tick them.
   useEffect(() => {
     if (store.soundPlaying) store.markUsed('sounds');
@@ -354,6 +362,7 @@ export default function App() {
           openTasks={openTasks}
           onOpenToday={() => setPanel('today')}
           onOpenSound={() => setPanel('sound')}
+          onResetSet={() => goTo('focus', false, { cycle: 0, intention: '', recall: '' })}
         >
           {!timer.running && <Agenda onOpenPlan={() => setPanel('plan')} />}
         </TimerView>

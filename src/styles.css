@@ -3735,3 +3735,32 @@ input[type='date'] {
 .heat-ring-key {
   margin-left: 10px;
 }
+
+.cycle-dots.is-resettable {
+  position: relative;
+  padding: 4px 6px;
+  margin: 4px -6px -4px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.cycle-dots.is-resettable:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.cycle-dots.is-resettable::after {
+  content: 'start over';
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.cycle-dots.is-resettable:hover::after,
+.cycle-dots.is-resettable:focus-visible::after {
+  opacity: 1;
+}

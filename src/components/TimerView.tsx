@@ -24,6 +24,8 @@ interface Props {
   openTasks: Task[];
   onOpenToday: () => void;
   onOpenSound: () => void;
+  /** Start the set over at block 1. */
+  onResetSet: () => void;
   children?: React.ReactNode;
 }
 
@@ -63,11 +65,24 @@ export function TimerView(p: Props) {
           <div className="dial-time" aria-live="off">
             {fmtClock(p.remaining)}
           </div>
-          <div className="cycle-dots" aria-label={`${posInSet} of ${p.longEvery} focus blocks before a long break`}>
-            {Array.from({ length: p.longEvery }, (_, i) => (
-              <span key={i} className={i < posInSet ? 'is-done' : ''} />
-            ))}
-          </div>
+          {posInSet > 0 && !p.running ? (
+            <button
+              className="cycle-dots is-resettable"
+              onClick={p.onResetSet}
+              title="Start over at block 1"
+              aria-label={`${posInSet} of ${p.longEvery} focus blocks done before a long break. Click to start over at block 1.`}
+            >
+              {Array.from({ length: p.longEvery }, (_, i) => (
+                <span key={i} className={i < posInSet ? 'is-done' : ''} />
+              ))}
+            </button>
+          ) : (
+            <div className="cycle-dots" aria-label={`${posInSet} of ${p.longEvery} focus blocks before a long break`}>
+              {Array.from({ length: p.longEvery }, (_, i) => (
+                <span key={i} className={i < posInSet ? 'is-done' : ''} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
