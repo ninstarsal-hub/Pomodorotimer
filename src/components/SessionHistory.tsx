@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ChevronDown, Lightbulb, Pencil } from 'lucide-react';
 import { useStore } from '../store';
 import { blocksOf, factorEmoji, factorLabel, isLive, MIN_RATED, sessionInsights, sessionTitle } from '../lib/studySessions';
@@ -118,7 +119,7 @@ export function SessionHistory() {
           })}
         </ul>
       )}
-      {editing && <SessionReview id={editing} ending={false} onClose={() => setEditing(null)} onDone={() => setEditing(null)} />}
+      {editing && createPortal(<SessionReview id={editing} ending={false} onClose={() => setEditing(null)} onDone={() => setEditing(null)} />, document.body)}
     </section>
   );
 }

@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import { usePersistentState } from '../lib/storage';
 import { answerFeedback, deckSections, schedule, sectionLabel, type AnswerFeedback } from '../lib/quiz';
 import { Feedback } from './QuizModal';
+import { DiagramView } from './Diagrams';
 import { generateExam, maxQuestions, QTYPE_LABEL, type ExamQuestion, type QType } from '../lib/exam';
 import type { Card } from '../lib/types';
 
@@ -570,6 +571,7 @@ function ExamQuestionView({
         {QTYPE_LABEL[q.type]}
         {q.lead !== QTYPE_LABEL[q.type] ? ` · ${q.lead}` : ''}
       </div>
+      {q.card.image && <DiagramView diagramId={q.card.image.diagramId} boxId={q.card.image.boxId} reveal={locked} />}
       <MathText as="p" className="q-front" text={q.prompt} />
       {q.detail && (
         <blockquote className="q-detail">

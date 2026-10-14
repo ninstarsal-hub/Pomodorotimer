@@ -3,6 +3,9 @@ import { MathText } from './MathText';
 import { Brain, ChevronDown, FileUp, ListChecks, Pencil, Plus, Share2, Shuffle, Trash2 } from 'lucide-react';
 import { fromShared, readSharedFile } from '../lib/share';
 import { ShareBox } from './ShareNotes';
+import { DiagramList } from './Diagrams';
+import { deleteBlob } from '../lib/storage';
+import { diagramBlobKey } from '../lib/diagrams';
 import { useStore } from '../store';
 import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
 import { uid } from '../lib/storage';
@@ -11,7 +14,7 @@ import { ACCEPTED_FILES, ImportError, extractText, titleFromFile } from '../lib/
 import type { Card, Deck } from '../lib/types';
 
 export function NotesPanel() {
-  const { decks, setDecks, cards, unlocked, reviews, setTasks, setQuiz, setBuilderOpen } = useStore();
+  const { decks, setDecks, cards, unlocked, reviews, setTasks, setQuiz, setBuilderOpen, diagrams, setDiagrams } = useStore();
   const [editing, setEditing] = useState<string | null>(null);
   const [importing, setImporting] = useState<string | null>(null);
   const [importError, setImportError] = useState('');
@@ -74,6 +77,8 @@ export function NotesPanel() {
     if (!confirm('Delete these notes and their questions?')) return;
     setDecks((ds) => ds.filter((d) => d.id !== id));
     setTasks((ts) => ts.map((t) => (t.deckId === id ? { ...t, deckId: undefined } : t)));
+    for (const dg of diagrams.filter((x) => x.deckId === id)) void deleteBlob(diagramBlobKey(dg.id));
+    setDiagrams((ds) => ds.filter((x) => x.deckId !== id));
     if (editing === id) setEditing(null);
   };
 
@@ -259,6 +264,7 @@ function DeckEditor({ deck, onRemove }: { deck: Deck; onRemove: () => void }) {
           </button>
         </div>
       </div>
+      <DiagramList deck={deck} />
       {sharing && <ShareBox deck={deck} />}
       {showCards && <QuestionEditor deck={deck} cards={shown} update={update} />}
     </div>

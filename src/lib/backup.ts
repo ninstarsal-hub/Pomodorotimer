@@ -1,4 +1,4 @@
-import { getBlob, putBlob } from './storage';
+import { getBlob, listBlobKeys, putBlob } from './storage';
 
 /* Backup = every `stillpoint:` localStorage entry plus the custom background image, in one JSON file. */
 
@@ -11,6 +11,8 @@ interface BackupFile {
   exportedAt: string;
   data: Record<string, string>;
   background?: string; // data: URL
+  /** Other stored images (diagrams), by key, as data: URLs. */
+  blobs?: Record<string, string>;
 }
 
 const blobToDataUrl = (b: Blob) =>
@@ -30,6 +32,13 @@ export async function exportBackup() {
   const file: BackupFile = { app: 'stillpoint', version: 1, exportedAt: new Date().toISOString(), data };
   const bg = await getBlob('background');
   if (bg) file.background = await blobToDataUrl(bg);
+  const blobs: Record<string, string> = {};
+  for (const key of await listBlobKeys()) {
+    if (key === 'background') continue;
+    const b = await getBlob(key);
+    if (b) blobs[key] = await blobToDataUrl(b);
+  }
+  if (Object.keys(blobs).length) file.blobs = blobs;
 
   const url = URL.createObjectURL(new Blob([JSON.stringify(file)], { type: 'application/json' }));
   const a = document.createElement('a');
@@ -101,5 +110,6 @@ export async function restoreBackup(backup: BackupFile) {
     const blob = await (await fetch(backup.background)).blob();
     await putBlob('background', blob);
   }
+  for (const [key, data] of Object.entries(backup.blobs ?? {})) await putBlob(key, await (await fetch(data)).blob());
   location.reload();
 }

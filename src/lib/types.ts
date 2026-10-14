@@ -131,6 +131,19 @@ export interface Card {
   edited?: boolean;
   /** The front is a question/instruction to answer as written (from Q:/A: or a "?" line). */
   ask?: boolean;
+  /** A diagram question: name the label hidden under this box. */
+  image?: { diagramId: string; boxId: string };
+}
+
+/** An image with labels covered by boxes — each box becomes a "name the hidden part" question. */
+export interface Diagram {
+  id: string;
+  deckId: string;
+  section: string;
+  title: string;
+  /** Box positions as fractions (0–1) of the image size, so they scale with it. */
+  boxes: { id: string; x: number; y: number; w: number; h: number; label: string }[];
+  createdAt: number;
 }
 
 export interface ReviewState {

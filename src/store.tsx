@@ -4,7 +4,8 @@ import { deckCards, type QuizItem } from './lib/quiz';
 import type { SoundParams } from './lib/audio';
 import type { Problem, ProblemRef, ProblemSet } from './lib/problems';
 import { SOUND_PRESETS } from './lib/audio';
-import type { Card, Deck, Distraction, Exam, ReviewState, Session, Settings, StudySession, Task } from './lib/types';
+import type { Card, Deck, Diagram, Distraction, Exam, ReviewState, Session, Settings, StudySession, Task } from './lib/types';
+import { diagramCards } from './lib/diagrams';
 import { isLive } from './lib/studySessions';
 import { uid } from './lib/storage';
 
@@ -123,7 +124,8 @@ function useStoreValue() {
     if (id === activeStudyId) setActiveStudyId(null);
   };
 
-  const cards = useMemo<Card[]>(() => decks.flatMap(deckCards), [decks]);
+  const [diagrams, setDiagrams] = usePersistentState<Diagram[]>('diagrams', []);
+  const cards = useMemo<Card[]>(() => [...decks.flatMap(deckCards), ...diagramCards(diagrams, decks)], [decks, diagrams]);
 
   /* ---------- sections: what you're studying now, and what you've already covered ---------- */
   const [studyingNow, setStudyingNowRaw] = usePersistentState<StudyPointer | null>('studyingNow', null);
@@ -214,6 +216,8 @@ function useStoreValue() {
     setPracticeRun,
     sectionLog,
     uploadVersion,
+    diagrams,
+    setDiagrams,
     studySessions,
     setStudySessions,
     liveStudy,

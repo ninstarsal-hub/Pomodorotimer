@@ -313,7 +313,10 @@ export function buildQuiz(cards: Card[], reviews: Record<string, ReviewState>, n
   return shuffle(picked).map((card) => {
     if (card.kind === 'prompt') return { card, type: 'flip' as const };
     if (card.kind === 'cloze') return { card, type: 'type' as const };
-    const sameDeck = cards.filter((c) => c.kind === 'qa' && c.id !== card.id && c.back !== card.back);
+    // Diagram questions take wrong options from the same diagram's other labels; text questions never use labels.
+    const sameDeck = cards.filter(
+      (c) => c.kind === 'qa' && c.id !== card.id && c.back !== card.back && (card.image ? c.image?.diagramId === card.image.diagramId : !c.image),
+    );
     if (sameDeck.length >= 3 && Math.random() < 0.5) {
       const distractors = shuffle(sameDeck)
         .slice(0, 3)

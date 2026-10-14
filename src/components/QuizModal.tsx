@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MathText } from './MathText';
+import { DiagramView } from './Diagrams';
 import { Check, X } from 'lucide-react';
 import { useStore, type QuizRequest } from '../store';
 import { answerFeedback, deckSections, schedule, sectionLabel, type AnswerFeedback, type Grade, type QuizItem } from '../lib/quiz';
@@ -153,7 +154,7 @@ function Question({ item, onGrade }: { item: QuizItem; onGrade: (g: Grade) => vo
       <div className="eyebrow muted">
         {prompt}
       </div>
-      <MathText as="p" className="q-front" text={card.front} />
+      {card.image ? <DiagramView diagramId={card.image.diagramId} boxId={card.image.boxId} reveal={revealed} /> : <MathText as="p" className="q-front" text={card.front} />}
 
       {item.type === 'choice' && (
         <div className="choices">

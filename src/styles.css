@@ -3884,3 +3884,113 @@ input[type='date'] {
   font-size: 13px;
   margin: 4px 0;
 }
+
+/* ---------- diagrams ---------- */
+
+.diagram-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--line);
+}
+.diagram-list .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.diagram-view,
+.diagram-canvas {
+  position: relative;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #fff;
+  user-select: none;
+}
+.diagram-view img,
+.diagram-canvas img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 52vh;
+  object-fit: contain;
+}
+.diagram-canvas {
+  cursor: crosshair;
+  touch-action: none;
+}
+.diagram-loading {
+  padding: 40px;
+  text-align: center;
+  background: var(--surface-2);
+}
+.dmask {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border-radius: 4px;
+  background: #3a3a40;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.25s, box-shadow 0.25s;
+}
+.dmask.is-target {
+  background: var(--accent);
+  color: #141416;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.dmask.is-revealed {
+  background: transparent;
+  box-shadow: 0 0 0 3px var(--accent);
+}
+.dbox {
+  position: absolute;
+  border: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: #141416;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  cursor: pointer;
+}
+.dbox.is-empty {
+  border-style: dashed;
+}
+.dbox.is-selected {
+  background: color-mix(in srgb, var(--accent) 65%, transparent);
+}
+.dbox.is-draft {
+  pointer-events: none;
+  border-style: dashed;
+}
+.modal.diagram-editor {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dbox-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 22vh;
+  overflow-y: auto;
+}
+.dbox-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.dbox-list li > span {
+  width: 18px;
+  text-align: right;
+}
+.question .diagram-view {
+  margin: 6px 0 4px;
+}

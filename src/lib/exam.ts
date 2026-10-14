@@ -76,6 +76,7 @@ function distractors(correct: string, pool: string[], n: number) {
 /** How a card could be asked, given the rest of the material. */
 function eligibleTypes(card: Card, ctx: Ctx): QType[] {
   const t: QType[] = [];
+  if (card.image) return (ctx.imageLabels[card.image.diagramId]?.length ?? 0) >= 4 ? ['short', 'mcq'] : ['short'];
   if (card.kind === 'prompt') return ['explain'];
   if (card.kind === 'qa') {
     const asked = card.ask || isQuestion(card.front);
@@ -94,16 +95,22 @@ function eligibleTypes(card: Card, ctx: Ctx): QType[] {
 }
 
 interface Ctx {
+  /** Diagram labels by diagram id (distractors for diagram questions). */
+  imageLabels: Record<string, string[]>;
   qaBacks: string[];
   qaFronts: string[];
   clozeAnswers: string[];
 }
 
 function makeCtx(cards: Card[]): Ctx {
+  const imageLabels: Record<string, string[]> = {};
+  for (const c of cards) if (c.image) (imageLabels[c.image.diagramId] ??= []).push(c.back);
+  const text = cards.filter((c) => !c.image);
   return {
-    qaBacks: cards.filter((c) => c.kind === 'qa').map((c) => c.back),
-    qaFronts: cards.filter((c) => c.kind === 'qa' && !c.ask && !isQuestion(c.front)).map((c) => c.front),
-    clozeAnswers: cards.filter((c) => c.kind === 'cloze').map((c) => c.back),
+    imageLabels,
+    qaBacks: text.filter((c) => c.kind === 'qa').map((c) => c.back),
+    qaFronts: text.filter((c) => c.kind === 'qa' && !c.ask && !isQuestion(c.front)).map((c) => c.front),
+    clozeAnswers: text.filter((c) => c.kind === 'cloze').map((c) => c.back),
   };
 }
 
@@ -114,7 +121,17 @@ function writeQuestion(card: Card, type: QType, ctx: Ctx, deckCtx: Ctx, n: numbe
   const term = stripEnd(card.front);
   const def = stripEnd(card.back);
   // Prefer distractors from the same class; fall back to everything selected.
-  const near = (key: keyof Ctx) => (deckCtx[key].length >= 4 ? deckCtx[key] : [...deckCtx[key], ...ctx[key]]);
+  const near = (key: Exclude<keyof Ctx, 'imageLabels'>) => (deckCtx[key].length >= 4 ? deckCtx[key] : [...deckCtx[key], ...ctx[key]]);
+
+  if (card.image) {
+    const label = card.back;
+    if (type === 'mcq') {
+      const others = shuffle((ctx.imageLabels[card.image.diagramId] ?? []).filter((l) => l !== label)).slice(0, 3);
+      if (others.length < 3) return null;
+      return { id, card, type, lead: 'Choose the label', prompt: 'Which part is highlighted on the diagram?', options: shuffle([label, ...others]), answer: label };
+    }
+    return { id, card, type: 'short', lead: 'Name the part', prompt: 'What is the highlighted part of the diagram?', answer: label };
+  }
 
   if (card.kind === 'qa') {
     const asked = card.ask || isQuestion(card.front);

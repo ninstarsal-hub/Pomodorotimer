@@ -10,6 +10,8 @@ const LONG_LINK = 8000;
 
 /** Share panel inside a notes set: copy a link, use the phone/OS share sheet, or download a file. */
 export function ShareBox({ deck }: { deck: Deck }) {
+  const { diagrams } = useStore();
+  const hasDiagrams = diagrams.some((d) => d.deckId === deck.id);
   const [link, setLink] = useState<string | null>(null);
   const [msg, setMsg] = useState('');
   useEffect(() => {
@@ -69,6 +71,7 @@ export function ShareBox({ deck }: { deck: Deck }) {
       ) : (
         !msg && <p className="muted small">Making link…</p>
       )}
+      {hasDiagrams && <p className="muted small">Diagrams aren’t included — images are too big for a link. Classmates can add their own from the same picture.</p>}
       {msg && <p className="small accent">{msg}</p>}
     </div>
   );
