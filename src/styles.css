@@ -1061,6 +1061,7 @@ input[type='range']::-moz-range-thumb {
 .scrim {
   position: fixed !important;
   inset: 0;
+  top: var(--topbar-h, 72px); /* keep the top bar tappable so you can switch panels */
   z-index: 15 !important;
   background: rgba(0, 0, 0, 0.25);
 }
@@ -4251,4 +4252,80 @@ input[type='date'] {
 }
 [data-theme='light'] .bg-scene + .bg-dim {
   opacity: 0.5 !important;
+}
+
+/* ---------- crash screen ---------- */
+
+.crash {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: var(--bg);
+}
+.crash-card {
+  width: min(480px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 24px;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: var(--surface-solid);
+}
+.crash-card h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 30px;
+  margin: 0;
+}
+.crash-card p {
+  margin: 0;
+  color: var(--text-2);
+}
+.crash-card pre {
+  white-space: pre-wrap;
+  color: var(--muted);
+  max-height: 200px;
+  overflow: auto;
+}
+
+/* ---------- in-app browser banner ---------- */
+
+.inapp-banner {
+  position: fixed !important;
+  z-index: 45 !important; /* above the welcome screen — first-time visitors from a story need to see this */
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: var(--surface-solid);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45);
+}
+.inapp-banner > .grow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 220px;
+}
+.inapp-banner .grow > .small {
+  color: var(--text-2);
+}
+.inapp-banner .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.welcome-phone {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-2);
 }

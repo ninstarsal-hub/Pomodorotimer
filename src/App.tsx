@@ -24,6 +24,7 @@ import { PlanPanel } from './components/PlanPanel';
 import { GoalStat } from './components/GoalStat';
 import { ExamWidget } from './components/ExamWidget';
 import { Welcome } from './components/Welcome';
+import { InAppBanner } from './components/InAppBanner';
 import { ACCENTS } from './lib/content';
 import { ListenReview } from './components/ListenReview';
 import { WeeklyRecapPrompt } from './components/WeeklyRecap';
@@ -432,6 +433,7 @@ export default function App() {
         <GoalStat minutes={todayMinutes} goal={settings.dailyGoalMin} onClick={() => setPanel('stats')} />
       </footer>
 
+      <InAppBanner />
       <MediaDock />
       <UpdateToast />
       {!timer.running && <BackupNudge />}

@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
   const sameOrigin = url.origin === self.location.origin;
   const fonts = url.hostname === 'fonts.googleapis.com' || url.hostname === 'fonts.gstatic.com';
   if (!sameOrigin && !fonts) return; // YouTube, Spotify etc. go straight to the network
-  if (sameOrigin && url.pathname === '/sw.js') return;
+  if (sameOrigin && (url.pathname === '/sw.js' || url.pathname.startsWith('/_vercel/'))) return; // analytics always fresh
 
   event.respondWith(
     caches.match(req).then(

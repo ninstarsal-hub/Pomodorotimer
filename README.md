@@ -75,6 +75,12 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 
 **New here?** First-time visitors get a short intro and can try everything with example notes and an example exam.
 
+**Opened from Instagram, TikTok or Snapchat?** Those apps use their own built-in browser with separate storage, so Stillpoint shows a banner asking you to open it in Safari or Chrome (with an *Open in Chrome* button on Android and a copy-link button) so your notes aren't lost.
+
+**If something breaks**, you get a recovery screen with Reload and Download-a-backup buttons instead of a blank page.
+
+Anonymous visit counts use Vercel Web Analytics (no cookies, no personal data); your notes and study data never leave your browser.
+
 All data stays in your browser's local storage, with no account. **Settings → Export backup** saves everything (notes, progress, exams, settings and your background image) to one file that you can import on another computer or browser. If you haven't backed up in a week, a reminder appears.
 
 ### Notes format

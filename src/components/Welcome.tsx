@@ -33,6 +33,7 @@ export function Welcome({ onOpen }: { onOpen: (panel: 'notes' | 'plan') => void 
         <div className="eyebrow">Welcome</div>
         <h2>Stillpoint</h2>
         <p className="muted">A calm place to study — free, no account, and everything stays in your browser.</p>
+        {window.innerWidth < 700 && <p className="small welcome-phone">📱 Works on your phone — but it’s at its best on a laptop, where you can keep it open beside your notes while you study.</p>}
         <ol className="welcome-steps">
           {STEPS.map(({ icon: Icon, title, body }, i) => (
             <li key={title}>

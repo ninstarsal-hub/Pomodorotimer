@@ -4,13 +4,18 @@ import App from './App';
 import { StoreProvider } from './store';
 import './styles.css';
 import { registerServiceWorker } from './lib/pwa';
+import { Analytics } from '@vercel/analytics/react';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 registerServiceWorker();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <StoreProvider>
-      <App />
-    </StoreProvider>
+    <ErrorBoundary>
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </ErrorBoundary>
+    <Analytics />
   </StrictMode>,
 );
