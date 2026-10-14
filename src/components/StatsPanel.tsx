@@ -6,6 +6,7 @@ import { deckSections, sectionLabel } from '../lib/quiz';
 import { MISTAKES } from '../lib/problems';
 import { InsightsCard, SessionHistory } from './SessionHistory';
 import { MonthHeatmap } from './MonthHeatmap';
+import { WeeklyRecapCard } from './WeeklyRecap';
 
 export function StatsPanel() {
   const { sessions, reviewLog, tasks, today, settings } = useStore();
@@ -76,6 +77,8 @@ export function StatsPanel() {
           <p className="muted small">Change your goals in Settings.</p>
         </section>
       )}
+
+      <WeeklyRecapCard />
 
       <InsightsCard />
 

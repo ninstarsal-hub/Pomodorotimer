@@ -3,6 +3,7 @@ import type { Mode, Task } from '../lib/types';
 import { fmtClock } from '../lib/storage';
 import { TIMER_PRESETS } from '../lib/content';
 import { BreakCard } from './BreakCard';
+import { StuckHelper } from './StuckHelper';
 import { useStore } from '../store';
 import { deckSections, sectionLabel } from '../lib/quiz';
 
@@ -107,6 +108,7 @@ export function TimerView(p: Props) {
           <TaskPicker activeTask={activeTask} tasks={p.openTasks} onPick={setActiveTaskId} onOpenToday={p.onOpenToday} />
           <SectionPicker />
           {p.children}
+          {p.started && <StuckHelper />}
           {cards.length > 0 && !p.started && (
             <button className="link-btn quiz-link" onClick={() => setBuilderOpen(true)}>
               Test yourself — generate a quiz

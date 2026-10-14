@@ -33,6 +33,9 @@ export interface Settings {
   sceneMotion: boolean;
   /** Notice when you leave the Stillpoint tab during focus (you decide whether it was studying). */
   awayTracking: boolean;
+  theme: 'dark' | 'light' | 'system';
+  /** Interface size: 1 = normal, 1.1 = large, 1.2 = larger. */
+  textScale: number;
 }
 
 export interface BackgroundSetting {

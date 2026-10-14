@@ -12,17 +12,21 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - Research-backed break ideas: doodling, drawing what you learned, going outside, an exercise snack, a brain dump, a power nap on long breaks, and more, each with a one-line summary of the study behind it. Breaks follow a recommended plan: doodle after the first block, a walk outside after the second, eyes-closed rest after the third, then a proper recharge (move, eat, maybe nap) on the long break. The plan can be turned off in Settings. Tap "Another idea" to shuffle, or browse the full list under Strategies
 - Break tools: a doodle pad (save your doodle as a PNG), an animated box-breathing guide, and break beats
 - A parking lot where you can write down a distracting thought and get back to work
+- **Stuck?** During a block, get a short list of ways to get unstuck, and save the exact question to your parking lot to ask a teacher, classmate or AI tutor later
+- **Time away:** Stillpoint notices when you spend a minute or more in other tabs during a focus block. If you study with other tools (Claude, Google Docs, a textbook site), tick *Studying in other apps too* and it won't count as a distraction; otherwise the reflection asks whether it was studying or a distraction. Only time you mark as a distraction feeds into your insights. You can turn this off in Settings
 - Zen mode (`Z`), keyboard shortcuts, desktop notifications, and the time left shown in the browser tab
 
 **Today**
 - Add assignments with a subject and an estimate of how many focus blocks they need. Each finished block is counted
 - Unfinished tasks from earlier days can be moved to today
+- **Due dates:** give an assignment a due date and up to 40 blocks. It stays on Today until it's done, a *Coming up* card shows how many blocks a day keep you on pace, the main screen flags anything due within 2 days, and due dates appear on the plan calendar and in the calendar export
 - You can link a set of notes to a task, so checkpoint quizzes ask about what you're studying
 
 **Sound**
 - Focus sounds generated in the browser, in the style of brain.fm: brown, pink or white noise, rain, café murmur, fireplace, ocean waves, ambient pads, amplitude modulation (theta/alpha/beta/gamma) and binaural beats
 - Six presets plus a mixer. The sounds can play only during focus blocks if you want
 - Built-in lyric-free YouTube streams and Spotify playlists, and you can add your own YouTube, Spotify or SoundCloud links
+- **Listen mode:** hear your due review questions read aloud with a pause to answer in your head, made for walks. Optional *Knew it / Missed it* taps count as reviews
 - Break music: lofi, chillhop and deep-house beats generated in the browser (free, offline, no account), which can start automatically on breaks and stop when focus resumes. Also includes upbeat break playlists and your own break links
 
 **Learn**
@@ -43,6 +47,9 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - **Mixed practice:** problems drawn at random across sets, so you practise choosing the right method
 - **Mistake log:** tag why you missed a problem (concept, setup, algebra, careless). Progress shows where your points go, with a tip for your most common mistake type
 
+- **Diagram quizzes:** upload a labelled image (a cell, a map, an anatomy chart), draw boxes over the labels and name them. Each box becomes a question that shows the diagram with every label covered and the one being asked highlighted
+- **Share notes:** a Share button makes a link with the notes and questions packed inside it (nothing is uploaded). Anyone who opens it can add a private copy to their own Stillpoint. Long notes can be shared as a file instead
+
 **Plan**
 - **Exam planner:** add an exam date and the sections it covers. Stillpoint schedules when to learn each new section and when to review each one, at about 14, 7 and 3 days before the exam plus a final review the day before. The plan is rebuilt every day, so a missed day just rolls forward instead of piling up. A Calendar view shows the plan for all your exams by month, with colour-coded days for learning, reviews, final reviews and exams. Tap a day to see what to do
 - **Exam countdown:** a small box at the top shows days until your next exam and how ready you are. Arrows step through upcoming exams, clicking it lists them all, and you can hide it (and bring it back from the calendar icon)
@@ -58,9 +65,9 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - Progress lists your recent sessions with what you worked on in each block, your per-block and overall ratings, and what you ticked. Unrated sessions can be rated later
 - **What works for you:** after 3 rated sessions, Stillpoint looks for patterns: your best time of day, habits that go with better (or worse) focus, what matters most in morning vs. night sessions, and the block where your focus usually drops
 
-**Progress**: minutes focused today, goals, a monthly focus calendar (each day shaded by minutes, goal days ringed, step back through past months, with totals and a comparison to last month), **mastery by section** (weakest first, with a "Quiz my weakest sections" button), your streak, recall accuracy, a chart of the last 7 days, time per subject, your average focus rating, and recent blocks with your recall notes.
+**Progress**: minutes focused today, goals, a **weekly recap** (also shown once at the start of each week: last week vs. the week before, your best session and what went with it, and what's coming up), a monthly focus calendar (each day shaded by minutes, goal days ringed, step back through past months, with totals and a comparison to last month), **mastery by section** (weakest first, with a "Quiz my weakest sections" button), your streak, recall accuracy, a chart of the last 7 days, time per subject, your average focus rating, and recent blocks with your recall notes.
 
-**Customize**: accent colours, illustrated scenes (mountains, café, lakeside, dunes, city night) with optional gentle motion, animated backgrounds (aurora, ember, deep sea, forest, dusk, night sky, rain), an image URL, or your own uploaded image, with sliders for dim and blur.
+**Customize**: dark, light or match-your-device theme, three interface sizes, accent colours, illustrated scenes (mountains, café, lakeside, dunes, city night) with optional gentle motion, animated backgrounds (aurora, ember, deep sea, forest, dusk, night sky, rain), an image URL, or your own uploaded image, with sliders for dim and blur.
 
 **Install it as an app (free):** in Chrome or Edge, click **Install app** in the top bar (or the install icon in the address bar). In Safari on a Mac, use **File → Add to Dock**; on iPhone, **Share → Add to Home Screen**. The installed app opens in its own window with a Dock/taskbar icon, works offline, and updates itself. When a new version is published, a "Refresh" prompt appears.
 

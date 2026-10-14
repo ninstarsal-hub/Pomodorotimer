@@ -1,10 +1,11 @@
+/** `ink` is a deeper shade of the same accent, used in the light theme so text stays readable. */
 export const ACCENTS = [
-  { id: 'sand', value: '#e7cba9' },
-  { id: 'sage', value: '#a9c4a4' },
-  { id: 'mist', value: '#a8bfd9' },
-  { id: 'lilac', value: '#c4b1dc' },
-  { id: 'rose', value: '#e0aeb0' },
-  { id: 'bone', value: '#e8e6e1' },
+  { id: 'sand', value: '#e7cba9', ink: '#9a6a3c' },
+  { id: 'sage', value: '#a9c4a4', ink: '#4f7a49' },
+  { id: 'mist', value: '#a8bfd9', ink: '#47698f' },
+  { id: 'lilac', value: '#c4b1dc', ink: '#755aa0' },
+  { id: 'rose', value: '#e0aeb0', ink: '#a1515a' },
+  { id: 'bone', value: '#e8e6e1', ink: '#55524c' },
 ];
 
 export const BACKGROUND_PRESETS = [

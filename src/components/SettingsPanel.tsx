@@ -105,6 +105,26 @@ export function SettingsPanel() {
 
       <section className="card">
         <div className="eyebrow">Appearance</div>
+        <div className="field-label">Theme</div>
+        <div className="segmented three" role="radiogroup" aria-label="Theme">
+          {(['dark', 'light', 'system'] as const).map((t) => (
+            <button key={t} role="radio" aria-checked={settings.theme === t} className={settings.theme === t ? 'is-active' : ''} onClick={() => set('theme', t)}>
+              {t === 'dark' ? 'Dark' : t === 'light' ? 'Light' : 'Match my device'}
+            </button>
+          ))}
+        </div>
+        <div className="field-label">Text & interface size</div>
+        <div className="segmented three" role="radiogroup" aria-label="Interface size">
+          {[
+            [1, 'Normal'],
+            [1.1, 'Large'],
+            [1.2, 'Larger'],
+          ].map(([v, l]) => (
+            <button key={v} role="radio" aria-checked={settings.textScale === v} className={settings.textScale === v ? 'is-active' : ''} onClick={() => set('textScale', v as number)}>
+              {l}
+            </button>
+          ))}
+        </div>
         <div className="field-label">Accent</div>
         <div className="swatches">
           {ACCENTS.map((a) => (

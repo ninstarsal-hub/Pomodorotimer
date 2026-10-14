@@ -24,7 +24,9 @@ import { PlanPanel } from './components/PlanPanel';
 import { GoalStat } from './components/GoalStat';
 import { ExamWidget } from './components/ExamWidget';
 import { Welcome } from './components/Welcome';
+import { ACCENTS } from './lib/content';
 import { ListenReview } from './components/ListenReview';
+import { WeeklyRecapPrompt } from './components/WeeklyRecap';
 import { SharedImport } from './components/ShareNotes';
 import { SessionReview } from './components/SessionReview';
 import { SessionPill } from './components/SessionPill';
@@ -316,10 +318,29 @@ export default function App() {
     document.title = timer.started ? `${fmtClock(remaining)} · ${MODE_LABEL[timer.mode]} — Stillpoint` : 'Stillpoint';
   }, [remaining, timer.mode, timer.started]);
 
+  // Light / dark (following the system if asked)
+  const [systemLight, setSystemLight] = useState(() => window.matchMedia('(prefers-color-scheme: light)').matches);
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const on = () => setSystemLight(mq.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  const theme = settings.theme === 'system' ? (systemLight ? 'light' : 'dark') : settings.theme;
+
   // Accent colour
   useEffect(() => {
-    document.documentElement.style.setProperty('--accent', settings.accent);
-  }, [settings.accent]);
+    document.documentElement.style.setProperty('--accent', theme === 'light' ? (ACCENTS.find((x) => x.value === settings.accent)?.ink ?? settings.accent) : settings.accent);
+  }, [settings.accent, theme]);
+
+  // Theme + interface size
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
+  useEffect(() => {
+    (document.documentElement.style as CSSStyleDeclaration & { zoom: string }).zoom = settings.textScale === 1 ? '' : String(settings.textScale);
+  }, [settings.textScale]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -479,7 +500,10 @@ export default function App() {
           }}
         />
       ) : (
-        <Welcome onOpen={setPanel} />
+        <>
+          <Welcome onOpen={setPanel} />
+          {!timer.running && !store.quiz && !reflectionId && <WeeklyRecapPrompt onOpenPlan={() => setPanel('plan')} />}
+        </>
       )}
       {review && (
         <SessionReview

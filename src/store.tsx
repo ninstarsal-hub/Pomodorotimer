@@ -34,6 +34,8 @@ export const DEFAULT_SETTINGS: Settings = {
   breakPlan: true,
   sceneMotion: true,
   awayTracking: true,
+  theme: 'dark',
+  textScale: 1,
 };
 
 export const sectionKey = (deckId: string, section: string) => `${deckId}\u0000${section}`;
