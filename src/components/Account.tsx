@@ -32,9 +32,11 @@ export function AccountSection() {
       {!sync.user ? (
         <>
           <p className="muted small">Sign in to keep your notes, progress and plans in sync between your laptop and phone. Optional — Stillpoint works fully without an account.</p>
-          <button className="btn primary google-btn" disabled={busy} onClick={() => void run(signIn)}>
-            <GoogleMark /> Sign in with Google
+          <button className="btn primary google-btn" disabled={busy || sync.status === 'syncing'} onClick={() => void run(signIn)}>
+            <GoogleMark /> {sync.status === 'syncing' ? 'Signing in…' : 'Sign in with Google'}
           </button>
+          <p className="small muted">Status: not signed in on this device.</p>
+          {sync.error && <p className="error small">{sync.error}</p>}
         </>
       ) : (
         <>

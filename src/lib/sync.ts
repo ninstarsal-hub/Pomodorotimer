@@ -274,7 +274,21 @@ let started = false;
 export async function startSync() {
   if (!syncAvailable || started) return;
   started = true;
-  backend = mock ? mock() : await supabaseBackend();
+  // Coming back from Google with an error (wrong client ID/secret, redirect not allowed…)? Show it instead of failing silently.
+  const params = new URLSearchParams(location.search + '&' + location.hash.replace(/^#/, ''));
+  const authError = params.get('error_description') || params.get('error');
+  const signingIn = params.has('code');
+  if (authError) {
+    set({ error: `Google sign-in didn’t finish: ${authError.replace(/\+/g, ' ')}` });
+    history.replaceState(null, '', location.pathname);
+  } else if (signingIn) set({ status: 'syncing' });
+  try {
+    backend = mock ? mock() : await supabaseBackend();
+  } catch (e) {
+    started = false;
+    set({ status: 'signed-out', error: `Couldn’t load sign-in: ${e instanceof Error ? e.message : e}` });
+    return;
+  }
   onLocalSave((k) => {
     if (!state.user) return;
     pending.add(k);
@@ -286,7 +300,14 @@ export async function startSync() {
     void (blob ? backend.upload(uid, key, blob) : backend.removeFiles(uid, [key])).catch(() => {});
   });
   backend.onAuthChange((u) => void onUser(u));
-  await onUser(await backend.getUser());
+  const user = await backend.getUser().catch((e) => {
+    set({ error: `Sign-in problem: ${e instanceof Error ? e.message : e}` });
+    return null;
+  });
+  if (!user && signingIn && !state.error) set({ error: 'Google sign-in didn’t finish. Try again — if it keeps happening, check the Google client ID/secret in Supabase and the Redirect URLs.' });
+  // Remove the one-time sign-in code from the address bar.
+  if (signingIn) history.replaceState(null, '', location.pathname);
+  await onUser(user);
   // Pick up changes from other devices when you come back to the tab, and every few minutes.
   document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void syncNow());
   window.addEventListener('online', () => void syncNow());
