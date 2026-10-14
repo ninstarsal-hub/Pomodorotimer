@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { Download, Eraser, Music, PenLine, RefreshCw, Square, Wind } from 'lucide-react';
+import { Download, Eraser, Headphones, Music, PenLine, RefreshCw, Square, Wind } from 'lucide-react';
 import { BREAK_PLAN, ideaByTitle, pickBreakIdea, planStep, type BreakIdea, type BreakTool } from '../lib/content';
 import { BEAT_STYLES, beats, useBeatStyle } from '../lib/beats';
 import { useStore } from '../store';
@@ -15,7 +15,8 @@ interface Props {
 
 /** Render with a `key` per break so each break gets a fresh suggestion. */
 export function BreakCard({ long, cycle, longEvery, intention, onOpenSound }: Props) {
-  const { settings } = useStore();
+  const { settings, setListenOpen, unlocked } = useStore();
+  const unlockedCount = unlocked.length;
   const plan = settings.breakPlan ? planStep(long, cycle, longEvery) : null;
   const recommended = plan ? ideaByTitle(plan.step.idea) : null;
   const [idea, setIdea] = useState<BreakIdea>(() => recommended ?? pickBreakIdea(long));
@@ -49,6 +50,11 @@ export function BreakCard({ long, cycle, longEvery, intention, onOpenSound }: Pr
       <p>{idea.body}</p>
       {onPlan && plan && <p className="break-reason">{plan.step.reason}</p>}
       {idea.why && <p className="break-why">{idea.why}</p>}
+      {/walk|outside|green/i.test(idea.title) && unlockedCount > 0 && (
+        <button className="link-btn small listen-link" onClick={() => setListenOpen(true)}>
+          <Headphones size={12} /> Listen to your reviews on the walk
+        </button>
+      )}
       {plan && <PlanStrip long={long} index={plan.index} longEvery={longEvery} offPlan={!onPlan} onBack={backToPlan} />}
 
       <div className="break-tools" role="group" aria-label="Break tools">

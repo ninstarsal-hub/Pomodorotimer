@@ -3994,3 +3994,55 @@ input[type='date'] {
 .question .diagram-view {
   margin: 6px 0 4px;
 }
+
+/* ---------- listen mode ---------- */
+
+.modal.listen {
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.listen-card {
+  padding: 18px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  min-height: 120px;
+}
+.listen-q {
+  font-family: var(--serif);
+  font-size: 22px;
+  margin: 0;
+}
+.listen-a {
+  margin: 12px 0 0;
+  color: var(--accent);
+  font-size: 15px;
+}
+.listen-think {
+  margin: 10px 0 0;
+}
+.listen-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.listen-controls .btn,
+.listen-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.listen-link {
+  align-self: center;
+  margin-bottom: 6px;
+}
+.listen-settings {
+  gap: 16px;
+}
+.listen-settings select {
+  width: auto;
+  padding: 2px 6px;
+  font-size: 12px;
+}

@@ -94,6 +94,7 @@ function useStoreValue() {
   const updateProblem = (setId: string, problemId: string, fn: (p: Problem) => Problem) =>
     setProblemSets((ss) => ss.map((set) => (set.id !== setId ? set : { ...set, problems: set.problems.map((p) => (p.id === problemId ? fn(p) : p)) })));
   const [uploadVersion, setUploadVersion] = useState(0);
+  const [listenOpen, setListenOpen] = useState(false);
 
   /* ---------- study sessions (a sitting of several focus blocks) ---------- */
   const [studySessions, setStudySessions] = usePersistentState<StudySession[]>('studySessions', []);
@@ -216,6 +217,8 @@ function useStoreValue() {
     setPracticeRun,
     sectionLog,
     uploadVersion,
+    listenOpen,
+    setListenOpen,
     diagrams,
     setDiagrams,
     studySessions,

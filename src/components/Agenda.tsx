@@ -1,4 +1,4 @@
-import { CalendarClock, CalendarDays, Repeat, RotateCcw } from 'lucide-react';
+import { CalendarClock, CalendarDays, Headphones, Repeat, RotateCcw } from 'lucide-react';
 import { upcoming } from '../lib/assignments';
 import { useDueProblems } from './PracticePanel';
 import { useStore } from '../store';
@@ -7,7 +7,7 @@ import { CramButton, PlanItemRow, canCram, dueSummary, usePlanActions, usePlans 
 
 /** Main-screen "what to do today": due reviews + today's exam-plan tasks. */
 export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
-  const { unlocked, reviews, setQuiz, setPracticeRun, tasks, setActiveTaskId, activeTaskId } = useStore();
+  const { unlocked, reviews, setQuiz, setPracticeRun, tasks, setActiveTaskId, activeTaskId, setListenOpen } = useStore();
   const dueProblems = useDueProblems();
   const plans = usePlans();
   const { isDone } = usePlanActions();
@@ -35,6 +35,9 @@ export function Agenda({ onOpenPlan }: { onOpenPlan: () => void }) {
             }}
           >
             Review {Math.min(10, due.length)}
+          </button>
+          <button className="icon-btn small" onClick={() => setListenOpen(true)} aria-label="Listen mode" title="Listen mode — hear your reviews read aloud (great on a walk)">
+            <Headphones size={14} />
           </button>
         </div>
       )}

@@ -24,6 +24,7 @@ import { PlanPanel } from './components/PlanPanel';
 import { GoalStat } from './components/GoalStat';
 import { ExamWidget } from './components/ExamWidget';
 import { Welcome } from './components/Welcome';
+import { ListenReview } from './components/ListenReview';
 import { SharedImport } from './components/ShareNotes';
 import { SessionReview } from './components/SessionReview';
 import { SessionPill } from './components/SessionPill';
@@ -491,6 +492,7 @@ export default function App() {
           }}
         />
       )}
+      {store.listenOpen && <ListenReview onClose={() => store.setListenOpen(false)} />}
       {store.quiz && <QuizModal request={store.quiz} onClose={() => store.setQuiz(null)} />}
       {recallOpen && (
         <RecallModal
