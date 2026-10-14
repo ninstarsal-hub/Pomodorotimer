@@ -4329,3 +4329,30 @@ input[type='date'] {
   background: var(--surface-2);
   color: var(--text-2);
 }
+
+/* ---------- account & sync ---------- */
+
+.account {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.google-btn,
+.account .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.google-btn {
+  align-self: flex-start;
+}
+.sync-row {
+  align-items: center;
+  gap: 8px;
+}
+.danger-ink {
+  color: var(--danger);
+}
+.account details p {
+  margin: 6px 0;
+}

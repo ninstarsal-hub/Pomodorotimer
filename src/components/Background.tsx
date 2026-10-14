@@ -13,6 +13,12 @@ interface Props {
 
 export function Background({ bg, dim, blur, uploadVersion, motion = true }: Props) {
   const [uploadUrl, setUploadUrl] = useState<string | null>(null);
+  const [arrived, setArrived] = useState(0);
+  useEffect(() => {
+    const on = (e: Event) => (e as CustomEvent<string>).detail === 'background' && setArrived((n) => n + 1);
+    window.addEventListener('stillpoint:blob', on);
+    return () => window.removeEventListener('stillpoint:blob', on);
+  }, []);
 
   useEffect(() => {
     if (bg.kind !== 'upload') return;
@@ -27,7 +33,7 @@ export function Background({ bg, dim, blur, uploadVersion, motion = true }: Prop
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [bg.kind, uploadVersion]);
+  }, [bg.kind, uploadVersion, arrived]);
 
   const imageUrl = bg.kind === 'url' ? bg.url : bg.kind === 'upload' ? uploadUrl : null;
 

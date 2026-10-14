@@ -1,6 +1,6 @@
 # Stillpoint
 
-**Live:** https://pomodorotimer-ochre.vercel.app/
+**Live:** https://stillpoint-study.vercel.app/
 
 A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sounds and music, and active-recall quizzes built from your own notes.
 
@@ -78,6 +78,8 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 **Opened from Instagram, TikTok or Snapchat?** Those apps use their own built-in browser with separate storage, so Stillpoint shows a banner asking you to open it in Safari or Chrome (with an *Open in Chrome* button on Android and a copy-link button) so your notes aren't lost.
 
 **If something breaks**, you get a recovery screen with Reload and Download-a-backup buttons instead of a blank page.
+
+**Account sync (optional):** sign in with Google in Settings to keep notes, progress, plans, settings and images in sync between devices (newest edit wins per item; the timer stays per-device). Runs on Supabase's free plan and stays hidden until it's configured; see [SYNC-SETUP.md](SYNC-SETUP.md). Signing out keeps your notes on the device, and you can delete your account and cloud copy from Settings.
 
 Anonymous visit counts use Vercel Web Analytics (no cookies, no personal data); your notes and study data never leave your browser.
 

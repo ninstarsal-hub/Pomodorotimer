@@ -13,6 +13,13 @@ const urls = new Map<string, string>();
 
 function useDiagramUrl(id: string) {
   const [url, setUrl] = useState(() => urls.get(id) ?? null);
+  const [arrived, setArrived] = useState(0);
+  useEffect(() => {
+    // An image synced from another device can land after this mounts.
+    const on = (e: Event) => (e as CustomEvent<string>).detail === diagramBlobKey(id) && setArrived((n) => n + 1);
+    window.addEventListener('stillpoint:blob', on);
+    return () => window.removeEventListener('stillpoint:blob', on);
+  }, [id]);
   useEffect(() => {
     if (urls.has(id)) return setUrl(urls.get(id)!);
     let live = true;
@@ -25,7 +32,7 @@ function useDiagramUrl(id: string) {
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, arrived]);
   return url;
 }
 

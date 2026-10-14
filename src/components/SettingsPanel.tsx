@@ -4,6 +4,7 @@ import { useStore } from '../store';
 import { ACCENTS, BACKGROUND_PRESETS } from '../lib/content';
 import { putBlob } from '../lib/storage';
 import { InstallSection } from './InstallUI';
+import { AccountSection } from './Account';
 import { Scene, SCENES } from './Scenes';
 import { exportBackup, lastBackupAt, readBackup, restoreBackup } from '../lib/backup';
 import type { Settings } from '../lib/types';
@@ -56,6 +57,7 @@ export function SettingsPanel() {
 
   return (
     <div className="stack">
+      <AccountSection />
       <section className="card">
         <div className="eyebrow">Timer</div>
         <div className="num-grid">

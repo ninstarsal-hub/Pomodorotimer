@@ -25,6 +25,7 @@ import { GoalStat } from './components/GoalStat';
 import { ExamWidget } from './components/ExamWidget';
 import { Welcome } from './components/Welcome';
 import { InAppBanner } from './components/InAppBanner';
+import { SyncChoice } from './components/Account';
 import { ACCENTS } from './lib/content';
 import { ListenReview } from './components/ListenReview';
 import { WeeklyRecapPrompt } from './components/WeeklyRecap';
@@ -434,6 +435,7 @@ export default function App() {
       </footer>
 
       <InAppBanner />
+      <SyncChoice />
       <MediaDock />
       <UpdateToast />
       {!timer.running && <BackupNudge />}

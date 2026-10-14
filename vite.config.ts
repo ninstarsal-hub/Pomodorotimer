@@ -12,8 +12,15 @@ function serviceWorker(): Plugin {
     generateBundle(_, bundle) {
       const files = Object.keys(bundle);
       // Big parsers (PDF/Word/PowerPoint import, math fonts) are cached the first time they're used instead.
+      // Optional code loaded on demand (account sync) is skipped too: any JS chunk that's only ever dynamically imported.
       const lazy = /pdf|mammoth|jszip|KaTeX_|katex/i;
-      const precache = ['/', ...files.filter((f) => !lazy.test(f) && !f.endsWith('.map')).map((f) => '/' + f)];
+      const onDemand = new Set(
+        Object.values(bundle)
+          .filter((c) => c.type === 'chunk' && c.isDynamicEntry && !c.isEntry)
+          .map((c) => c.fileName)
+          .filter((f) => !Object.values(bundle).some((c) => c.type === 'chunk' && c.imports.includes(f))),
+      );
+      const precache = ['/', ...files.filter((f) => !lazy.test(f) && !onDemand.has(f) && !f.endsWith('.map')).map((f) => '/' + f)];
       const statics = ['/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png', '/apple-touch-icon.png'];
       const version = Date.now().toString(36);
       const source = SW_TEMPLATE.replace('__VERSION__', version).replace('__PRECACHE__', JSON.stringify([...precache, ...statics]));

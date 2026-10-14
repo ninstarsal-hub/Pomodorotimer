@@ -1,4 +1,4 @@
-import { getBlob, listBlobKeys, putBlob } from './storage';
+import { getBlob, listBlobKeys, putBlob, touchKeys } from './storage';
 
 /* Backup = every `stillpoint:` localStorage entry plus the custom background image, in one JSON file. */
 
@@ -106,6 +106,8 @@ export async function restoreBackup(backup: BackupFile) {
     .forEach((k) => localStorage.removeItem(k));
   for (const [k, v] of Object.entries(backup.data)) localStorage.setItem(PREFIX + k, v);
   localStorage.setItem(LAST_BACKUP, keep);
+  // A restore is a deliberate change: mark it newest so account sync keeps it over older cloud copies.
+  touchKeys(Object.keys(backup.data).filter((k) => !['syncMeta', 'syncSince', 'syncUser'].includes(k)));
   if (backup.background) {
     const blob = await (await fetch(backup.background)).blob();
     await putBlob('background', blob);
