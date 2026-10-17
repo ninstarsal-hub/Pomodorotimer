@@ -36,6 +36,7 @@ export const DEFAULT_SETTINGS: Settings = {
   awayTracking: true,
   theme: 'dark',
   textScale: 1,
+  shareCircleStats: true,
 };
 
 export const sectionKey = (deckId: string, section: string) => `${deckId}\u0000${section}`;

@@ -81,6 +81,8 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 
 **Account sync (optional):** sign in with Google in Settings to keep notes, progress, plans, settings and images in sync between devices (newest edit wins per item; the timer stays per-device). Runs on Supabase's free plan and stays hidden until it's configured; see [SYNC-SETUP.md](SYNC-SETUP.md). Signing out keeps your notes on the device, and you can delete your account and cloud copy from Settings.
 
+**Study circles (optional, needs sync):** make a private circle of up to 12 friends and share an invite link. The board shows everyone's week: which days they studied, their focus time and streak, and who's in a focus block right now. It's ranked by days studied, then minutes. You can set a shared weekly goal and send one 👏 cheer per friend per day. Only those numbers are shared, never notes or subjects, and anyone can hide theirs. Run `supabase/circles.sql` to turn it on.
+
 Anonymous visit counts use Vercel Web Analytics (no cookies, no personal data); your notes and study data never leave your browser.
 
 All data stays in your browser's local storage, with no account. **Settings → Export backup** saves everything (notes, progress, exams, settings and your background image) to one file that you can import on another computer or browser. If you haven't backed up in a week, a reminder appears.

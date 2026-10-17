@@ -24,6 +24,12 @@ images-only 10 MB file uploads, and tightens the file-rename rule.
 Then, since Stillpoint only uses Google sign-in, turn off the other sign-up methods:
 **Authentication → Sign In / Providers → Email → turn off "Enable Email provider"** (and leave anonymous sign-ins off).
 
+## 2c. Study circles
+To turn on **Study circles** (friends see each other's weekly focus numbers), run
+[`supabase/circles.sql`](supabase/circles.sql) once in the SQL Editor. It's safe to run again. Circles only
+share minutes, days studied, streak and "studying now". Row-level security keeps each circle visible
+only to its members, and people can hide their numbers in the Circles panel.
+
 ## 3. Set up Google sign-in
 1. In Supabase, open **Authentication → Sign In / Providers → Google**, and copy the **Callback URL** shown there
    (it looks like `https://abcd1234.supabase.co/auth/v1/callback`). Leave this tab open.

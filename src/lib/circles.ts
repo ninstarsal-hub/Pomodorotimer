@@ -1,0 +1,305 @@
+import { useEffect, useState } from 'react';
+import { getClient, syncAvailable } from './sync';
+import { dayKey } from './storage';
+import type { Session } from './types';
+
+/*
+ * Study circles: small private groups of friends who see each other's weekly focus numbers.
+ * Only these numbers are shared — minutes, which days you studied, streak, and whether you're in a focus block now.
+ */
+
+export interface Circle {
+  id: string;
+  name: string;
+  inviteCode: string;
+  owner: string;
+  weeklyGoalMin: number;
+}
+export interface MemberStats {
+  weekStart: string;
+  weekMinutes: number;
+  /** Bit per day of the week, Monday = 1. */
+  weekDays: number;
+  streak: number;
+  todayMinutes: number;
+  studyingUntil: string | null;
+  visible: boolean;
+  updatedAt: string;
+}
+export interface Member {
+  circleId: string;
+  userId: string;
+  name: string;
+}
+export interface Cheer {
+  circleId: string;
+  from: string;
+  to: string;
+  day: string;
+  id: number;
+}
+
+/** Everything circles need from the server — Supabase in production, a stand-in in tests. */
+export interface CirclesApi {
+  myCircles(): Promise<Circle[]>;
+  members(circleIds: string[]): Promise<Member[]>;
+  stats(userIds: string[]): Promise<Record<string, MemberStats>>;
+  cheersToday(): Promise<Cheer[]>;
+  pushStats(uid: string, s: Omit<MemberStats, 'updatedAt'>): Promise<void>;
+  create(name: string, displayName: string): Promise<string>;
+  preview(code: string): Promise<{ id: string; name: string; members: number } | null>;
+  join(code: string, displayName: string): Promise<string>;
+  leave(circleId: string): Promise<void>;
+  update(circleId: string, name: string, goal: number): Promise<void>;
+  newInvite(circleId: string): Promise<string>;
+  remove(circleId: string, userId: string): Promise<void>;
+  setName(name: string): Promise<void>;
+  cheer(circleId: string, to: string): Promise<boolean>;
+}
+
+const mockFactory = (globalThis as { __STILLPOINT_CIRCLES_MOCK__?: () => CirclesApi }).__STILLPOINT_CIRCLES_MOCK__;
+export const circlesAvailable = syncAvailable;
+
+const fail = (e: { message?: string } | null) => {
+  if (e) throw new Error(e.message ?? 'Something went wrong');
+};
+
+async function supabaseApi(): Promise<CirclesApi> {
+  const sb = await getClient();
+  return {
+    async myCircles() {
+      const { data, error } = await sb.from('circles').select('id,name,invite_code,owner,weekly_goal_min').order('created_at');
+      fail(error);
+      return (data ?? []).map((c) => ({ id: c.id, name: c.name, inviteCode: c.invite_code, owner: c.owner, weeklyGoalMin: c.weekly_goal_min }));
+    },
+    async members(ids) {
+      if (!ids.length) return [];
+      const { data, error } = await sb.from('circle_members').select('circle_id,user_id,display_name').in('circle_id', ids).order('joined_at');
+      fail(error);
+      return (data ?? []).map((m) => ({ circleId: m.circle_id, userId: m.user_id, name: m.display_name }));
+    },
+    async stats(ids) {
+      if (!ids.length) return {};
+      const { data, error } = await sb.from('member_stats').select('*').in('user_id', ids);
+      fail(error);
+      return Object.fromEntries(
+        (data ?? []).map((s) => [
+          s.user_id,
+          {
+            weekStart: s.week_start,
+            weekMinutes: s.week_minutes,
+            weekDays: s.week_days,
+            streak: s.streak,
+            todayMinutes: s.today_minutes,
+            studyingUntil: s.studying_until,
+            visible: s.visible,
+            updatedAt: s.updated_at,
+          },
+        ]),
+      );
+    },
+    async cheersToday() {
+      const since = new Date(Date.now() - 36 * 3600_000).toISOString();
+      const { data, error } = await sb.from('cheers').select('id,circle_id,from_user,to_user,day').gte('created_at', since);
+      fail(error);
+      return (data ?? []).map((c) => ({ id: c.id, circleId: c.circle_id, from: c.from_user, to: c.to_user, day: c.day }));
+    },
+    async pushStats(uid, s) {
+      const { error } = await sb.from('member_stats').upsert({
+        user_id: uid,
+        week_start: s.weekStart,
+        week_minutes: s.weekMinutes,
+        week_days: s.weekDays,
+        streak: s.streak,
+        today_minutes: s.todayMinutes,
+        studying_until: s.studyingUntil,
+        visible: s.visible,
+        updated_at: new Date().toISOString(),
+      });
+      fail(error);
+    },
+    async create(name, displayName) {
+      const { data, error } = await sb.rpc('create_circle', { p_name: name, p_display_name: displayName });
+      fail(error);
+      return data as string;
+    },
+    async preview(code) {
+      const { data, error } = await sb.rpc('circle_preview', { p_code: code });
+      fail(error);
+      return (data as { id: string; name: string; members: number } | null) ?? null;
+    },
+    async join(code, displayName) {
+      const { data, error } = await sb.rpc('join_circle', { p_code: code, p_display_name: displayName });
+      fail(error);
+      return data as string;
+    },
+    async leave(id) {
+      fail((await sb.rpc('leave_circle', { p_circle: id })).error);
+    },
+    async update(id, name, goal) {
+      fail((await sb.rpc('update_circle', { p_circle: id, p_name: name, p_goal: goal })).error);
+    },
+    async newInvite(id) {
+      const { data, error } = await sb.rpc('new_invite_code', { p_circle: id });
+      fail(error);
+      return data as string;
+    },
+    async remove(id, user) {
+      fail((await sb.rpc('remove_member', { p_circle: id, p_user: user })).error);
+    },
+    async setName(name) {
+      fail((await sb.rpc('set_display_name', { p_name: name })).error);
+    },
+    async cheer(id, to) {
+      const { data, error } = await sb.rpc('send_cheer', { p_circle: id, p_to: to });
+      fail(error);
+      return !!data;
+    },
+  };
+}
+
+let api: Promise<CirclesApi> | null = null;
+export function circlesApi() {
+  api ??= mockFactory ? Promise.resolve(mockFactory()) : supabaseApi();
+  return api;
+}
+
+/* ---------- your own numbers (computed on this device from your focus blocks) ---------- */
+
+export function weekStartKey(d = new Date()) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return dayKey(x);
+}
+
+/** Minutes that count: finished focus blocks, minus time you marked as a distraction. */
+const countedMinutes = (s: Session) => Math.max(0, s.minutes - (s.away?.kind === 'distracted' ? Math.round(s.away.ms / 60_000) : 0));
+
+export function myStats(sessions: Session[], studyingUntil: number | null, visible: boolean): Omit<MemberStats, 'updatedAt'> {
+  const now = new Date();
+  const weekStart = weekStartKey(now);
+  const byDay = new Map<string, number>();
+  for (const s of sessions) byDay.set(s.day, (byDay.get(s.day) ?? 0) + countedMinutes(s));
+  let weekMinutes = 0;
+  let weekDays = 0;
+  const [y, m, d] = weekStart.split('-').map(Number);
+  for (let i = 0; i < 7; i++) {
+    const min = byDay.get(dayKey(new Date(y, m - 1, d + i))) ?? 0;
+    weekMinutes += min;
+    if (min > 0) weekDays |= 1 << i;
+  }
+  // Streak: days in a row with any focus, counting today only once it has some.
+  let streak = 0;
+  const cur = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (!byDay.get(dayKey(cur))) cur.setDate(cur.getDate() - 1);
+  while ((byDay.get(dayKey(cur)) ?? 0) > 0 && streak < 3650) {
+    streak++;
+    cur.setDate(cur.getDate() - 1);
+  }
+  return {
+    weekStart,
+    weekMinutes: Math.min(10080, weekMinutes),
+    weekDays,
+    streak,
+    todayMinutes: Math.min(1440, byDay.get(dayKey(now)) ?? 0),
+    studyingUntil: studyingUntil && studyingUntil > Date.now() ? new Date(studyingUntil).toISOString() : null,
+    visible,
+  };
+}
+
+/* ---------- reading the board ---------- */
+
+export const popcount = (n: number) => {
+  let c = 0;
+  for (let x = n; x; x &= x - 1) c++;
+  return c;
+};
+
+export interface BoardRow {
+  userId: string;
+  name: string;
+  isMe: boolean;
+  hidden: boolean;
+  minutes: number;
+  days: number;
+  dayMask: number;
+  streak: number;
+  studyingNow: boolean;
+}
+
+/** Stats from an older week count as zero this week; a streak that hasn't been updated for 2+ days has ended. */
+export function boardRows(members: Member[], stats: Record<string, MemberStats>, me: string): BoardRow[] {
+  const week = weekStartKey();
+  const now = Date.now();
+  return members
+    .map((m) => {
+      const s = stats[m.userId];
+      const current = s && s.weekStart === week;
+      const fresh = s && now - new Date(s.updatedAt).getTime() < 2 * 86_400_000;
+      return {
+        userId: m.userId,
+        name: m.name,
+        isMe: m.userId === me,
+        hidden: !s,
+        minutes: current ? s.weekMinutes : 0,
+        days: current ? popcount(s.weekDays) : 0,
+        dayMask: current ? s.weekDays : 0,
+        streak: s && fresh ? s.streak : 0,
+        studyingNow: !!s?.studyingUntil && new Date(s.studyingUntil).getTime() > now,
+      };
+    })
+    .sort((a, b) => b.days - a.days || b.minutes - a.minutes || a.name.localeCompare(b.name));
+}
+
+/* ---------- shared state ---------- */
+
+export interface CirclesState {
+  loading: boolean;
+  error: string;
+  circles: Circle[];
+  members: Member[];
+  stats: Record<string, MemberStats>;
+  cheers: Cheer[];
+  loadedAt: number;
+}
+let state: CirclesState = { loading: false, error: '', circles: [], members: [], stats: {}, cheers: [], loadedAt: 0 };
+const listeners = new Set<() => void>();
+const set = (p: Partial<CirclesState>) => {
+  state = { ...state, ...p };
+  listeners.forEach((l) => l());
+};
+
+export function useCircles() {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const l = () => force((x) => x + 1);
+    listeners.add(l);
+    return () => void listeners.delete(l);
+  }, []);
+  return state;
+}
+
+let inflight: Promise<void> | null = null;
+export function refreshCircles() {
+  inflight ??= (async () => {
+    set({ loading: true });
+    try {
+      const a = await circlesApi();
+      const circles = await a.myCircles();
+      const members = await a.members(circles.map((c) => c.id));
+      const ids = [...new Set(members.map((m) => m.userId))];
+      const [stats, cheers] = await Promise.all([a.stats(ids), a.cheersToday()]);
+      set({ circles, members, stats, cheers, error: '', loadedAt: Date.now() });
+    } catch (e) {
+      set({ error: e instanceof Error ? e.message : 'Couldn’t load circles' });
+    } finally {
+      set({ loading: false });
+      inflight = null;
+    }
+  })();
+  return inflight;
+}
+
+export function resetCircles() {
+  set({ circles: [], members: [], stats: {}, cheers: [], loadedAt: 0, error: '' });
+}

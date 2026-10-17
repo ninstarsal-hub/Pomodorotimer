@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, CalendarDays, ChartColumn, PencilRuler, Headphones, Lightbulb, ListTodo, Maximize2, Minimize2, Settings as SettingsIcon, X } from 'lucide-react';
+import { BookOpen, CalendarDays, ChartColumn, PencilRuler, Headphones, Lightbulb, ListTodo, Maximize2, Minimize2, Settings as SettingsIcon, Users, X } from 'lucide-react';
 import { useStore } from './store';
 import { usePersistentState, dayKey, fmtClock, uid } from './lib/storage';
 import { chime, engine } from './lib/audio';
@@ -30,6 +30,9 @@ import { ACCENTS } from './lib/content';
 import { ListenReview } from './components/ListenReview';
 import { WeeklyRecapPrompt } from './components/WeeklyRecap';
 import { SharedImport } from './components/ShareNotes';
+import { CirclesAgent, CirclesPanel, StudyingNowChip } from './components/Circles';
+import { circlesAvailable } from './lib/circles';
+import { useSync } from './lib/sync';
 import { SessionReview } from './components/SessionReview';
 import { SessionPill } from './components/SessionPill';
 import { sessionTitle } from './lib/studySessions';
@@ -39,7 +42,7 @@ import { PracticePanel } from './components/PracticePanel';
 import { PracticeRunner } from './components/PracticeRunner';
 import { beats } from './lib/beats';
 
-type Panel = 'today' | 'plan' | 'sound' | 'notes' | 'practice' | 'stats' | 'learn' | 'settings';
+type Panel = 'today' | 'plan' | 'sound' | 'notes' | 'practice' | 'stats' | 'circles' | 'learn' | 'settings';
 
 const PANELS: { id: Panel; label: string; icon: typeof ListTodo }[] = [
   { id: 'today', label: 'Today', icon: ListTodo },
@@ -48,6 +51,7 @@ const PANELS: { id: Panel; label: string; icon: typeof ListTodo }[] = [
   { id: 'notes', label: 'Notes & Quiz', icon: BookOpen },
   { id: 'practice', label: 'Practice problems', icon: PencilRuler },
   { id: 'stats', label: 'Progress', icon: ChartColumn },
+  { id: 'circles', label: 'Study circles', icon: Users },
   { id: 'learn', label: 'Strategies', icon: Lightbulb },
   { id: 'settings', label: 'Settings', icon: SettingsIcon },
 ];
@@ -73,6 +77,28 @@ export default function App() {
   const [recallOpen, setRecallOpen] = useState(false);
   const [review, setReview] = useState<{ id: string; ending: boolean } | null>(null);
   const [shareOpen, setShareOpen] = useState(() => location.hash.startsWith('#share='));
+  // Back from Google sign-in with an invite waiting? Go straight to it.
+  const syncUser = useSync().user;
+  useEffect(() => {
+    if (syncUser && localStorage.getItem('stillpoint:pendingJoin')) setPanel('circles');
+  }, [syncUser]);
+
+  // Circle invite links (#join=CODE): remember the code (it survives the Google sign-in round trip) and open Circles.
+  useEffect(() => {
+    const check = () => {
+      if (!location.hash.startsWith('#join=')) return;
+      const code = location.hash.slice(6).replace(/[^\w-]/g, '').slice(0, 40);
+      history.replaceState(null, '', location.pathname + location.search);
+      if (code && circlesAvailable) {
+        localStorage.setItem('stillpoint:pendingJoin', code);
+        window.dispatchEvent(new Event('stillpoint:pendingJoin'));
+        setPanel('circles');
+      }
+    };
+    check();
+    window.addEventListener('hashchange', check);
+    return () => window.removeEventListener('hashchange', check);
+  }, []);
 
   // Panels open just below the top bar, whose height changes (wrapping on phones, exam countdown).
   const topbarRef = useRef<HTMLElement>(null);
@@ -383,7 +409,7 @@ export default function App() {
         </div>
         <InstallButton />
         <nav className="nav" aria-label="Panels">
-          {PANELS.map(({ id, label, icon: Icon }) => (
+          {PANELS.filter((p) => p.id !== 'circles' || circlesAvailable).map(({ id, label, icon: Icon }) => (
             <button key={id} className={`icon-btn ${panel === id ? 'is-active' : ''}`} onClick={() => setPanel(panel === id ? null : id)} aria-label={label} data-tip={label}>
               <Icon size={18} strokeWidth={1.6} />
             </button>
@@ -424,6 +450,7 @@ export default function App() {
 
       <footer className="footer fade-zen">
         <ParkingInput onOpen={() => setPanel('today')} />
+        {circlesAvailable && <StudyingNowChip onOpen={() => setPanel('circles')} />}
         {store.liveStudy && !timer.running && (
           <SessionPill
             title={sessionTitle(store.liveStudy)}
@@ -434,6 +461,7 @@ export default function App() {
         <GoalStat minutes={todayMinutes} goal={settings.dailyGoalMin} onClick={() => setPanel('stats')} />
       </footer>
 
+      {circlesAvailable && <CirclesAgent studyingUntil={timer.mode === 'focus' && timer.running ? timer.endAt : null} />}
       <InAppBanner />
       <SyncChoice />
       <MediaDock />
@@ -473,6 +501,7 @@ export default function App() {
               {panel === 'notes' && <NotesPanel />}
               {panel === 'practice' && <PracticePanel />}
               {panel === 'stats' && <StatsPanel />}
+              {panel === 'circles' && <CirclesPanel />}
               {panel === 'learn' && <LearnPanel />}
               {panel === 'settings' && <SettingsPanel />}
             </div>
@@ -505,7 +534,7 @@ export default function App() {
         />
       ) : (
         <>
-          <Welcome onOpen={setPanel} />
+          {panel !== 'circles' && <Welcome onOpen={setPanel} />}
           {!timer.running && !store.quiz && !reflectionId && <WeeklyRecapPrompt onOpenPlan={() => setPanel('plan')} />}
         </>
       )}

@@ -14,6 +14,8 @@ type Entries = Record<string, Entry>;
 export interface SyncUser {
   id: string;
   email: string;
+  /** First name from Google, for circles. */
+  name?: string;
 }
 
 /** Everything sync needs from a server — Supabase in production, a stand-in in tests. */
@@ -39,11 +41,22 @@ const mock = (globalThis as { __STILLPOINT_SYNC_MOCK__?: MockFactory }).__STILLP
 
 export const syncAvailable = !!mock || (!!URL_ && !!KEY_);
 
+type SupabaseClient = import('@supabase/supabase-js').SupabaseClient;
+let client: Promise<SupabaseClient> | null = null;
+/** The one shared Supabase connection (sync and circles). Downloaded only once it's needed. */
+export function getClient(): Promise<SupabaseClient> {
+  client ??= import('@supabase/supabase-js').then(({ createClient }) =>
+    createClient(URL_!, KEY_!, { auth: { persistSession: true, detectSessionInUrl: true, flowType: 'pkce' } }),
+  );
+  return client;
+}
+
 /** Supabase is only downloaded once sync is actually used. */
 async function supabaseBackend(): Promise<SyncBackend> {
-  const { createClient } = await import('@supabase/supabase-js');
-  const sb = createClient(URL_!, KEY_!, { auth: { persistSession: true, detectSessionInUrl: true, flowType: 'pkce' } });
-  const toUser = (u: { id: string; email?: string } | null | undefined): SyncUser | null => (u ? { id: u.id, email: u.email ?? '' } : null);
+  const sb = await getClient();
+  type MetaUser = { id: string; email?: string; user_metadata?: { given_name?: string; full_name?: string; name?: string } };
+  const toUser = (u: MetaUser | null | undefined): SyncUser | null =>
+    u ? { id: u.id, email: u.email ?? '', name: u.user_metadata?.given_name || (u.user_metadata?.full_name || u.user_metadata?.name || '').split(' ')[0] || undefined } : null;
   const BUCKET = 'user-files';
   const path = (uid: string, key: string) => `${uid}/${encodeURIComponent(key)}`;
   return {
