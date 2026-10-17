@@ -4356,3 +4356,49 @@ input[type='date'] {
 .account details p {
   margin: 6px 0;
 }
+
+/* ---------- media groups (productivity.fm) ---------- */
+
+.media-group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0;
+}
+.media-group > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+}
+.media-group > summary::-webkit-details-marker {
+  display: none;
+}
+.media-group > summary::before {
+  content: '▸';
+  color: var(--muted);
+  transition: transform 0.2s;
+}
+.media-group[open] > summary::before {
+  transform: rotate(90deg);
+}
+.media-group > summary > span {
+  display: flex;
+  flex-direction: column;
+}
+.media-group > summary strong {
+  font-weight: 500;
+}
+.media-group > summary em {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--muted);
+}
+.media-group > .media-list {
+  padding: 0 8px 4px;
+}
+.media-group > .link-btn {
+  display: inline-block;
+  margin: 0 0 10px 14px;
+}

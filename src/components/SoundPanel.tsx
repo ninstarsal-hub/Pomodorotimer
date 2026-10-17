@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Pause, Play, Plus, Trash2, Volume2 } from 'lucide-react';
 import { useStore } from '../store';
 import { engine, SOUND_PRESETS, type NoiseType, type PadKey, type SoundParams } from '../lib/audio';
-import { BREAK_MEDIA, CURATED_MEDIA, toEmbed } from '../lib/content';
+import { BREAK_MEDIA, CURATED_MEDIA, PRODUCTIVITY_FM, PRODUCTIVITY_FM_CHANNEL, toEmbed } from '../lib/content';
+import { usePersistentState } from '../lib/storage';
 import { BEAT_STYLES, beats } from '../lib/beats';
 import { BeatPicker } from './BreakCard';
 import { uid } from '../lib/storage';
@@ -11,6 +12,7 @@ export function SoundPanel() {
   const { soundParams, setSoundParams, soundPresetId, setSoundPresetId, soundPlaying, setSoundPlaying, customMedia, setCustomMedia, nowPlaying, setNowPlaying, settings, setSettings } =
     useStore();
   const [advanced, setAdvanced] = useState(false);
+  const [pfmOpen, setPfmOpen] = usePersistentState('pfmOpen', false);
 
   useEffect(() => {
     engine.update(soundParams);
@@ -160,6 +162,31 @@ export function SoundPanel() {
               </button>
             </li>
           ))}
+          <li>
+            <details className="media-group" open={pfmOpen} onToggle={(e) => setPfmOpen((e.target as HTMLDetailsElement).open)}>
+              <summary>
+                <span>
+                  <strong>productivity.fm</strong>
+                  <em>Minimal house & ambient mixes for deep work · {PRODUCTIVITY_FM.length} videos</em>
+                </span>
+              </summary>
+              <ul className="media-list">
+                {PRODUCTIVITY_FM.map((m) => (
+                  <li key={m.id}>
+                    <button className={`media-item ${nowPlaying?.name === m.name ? 'is-active' : ''}`} onClick={() => playMedia(m.name, m.url)}>
+                      <Play size={14} />
+                      <span>
+                        <strong>{m.name}</strong>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <a className="link-btn small" href={PRODUCTIVITY_FM_CHANNEL} target="_blank" rel="noopener noreferrer">
+                More on their YouTube channel →
+              </a>
+            </details>
+          </li>
           {customMedia.filter((m) => m.kind !== 'break').map((m) => (
             <li key={m.id} className="row">
               <button className={`media-item grow ${nowPlaying?.name === m.name ? 'is-active' : ''}`} onClick={() => playMedia(m.name, m.url)}>

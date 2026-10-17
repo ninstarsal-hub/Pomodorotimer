@@ -43,6 +43,19 @@ export const CURATED_MEDIA: MediaItem[] = [
   { id: 'sp-brainfood', name: 'Brain Food', note: 'Spotify · electronic, minimal vocals', url: 'https://open.spotify.com/playlist/37i9dQZF1DWXLeA8Omikj7' },
 ];
 
+/** Productivity FM (youtube.com/@productivityonyt): minimal house and ambient mixes for deep work. */
+export const PRODUCTIVITY_FM_CHANNEL = 'https://www.youtube.com/@productivityonyt';
+export const PRODUCTIVITY_FM: MediaItem[] = [
+  { id: 'pfm-refuse', name: 'music for people who refuse to waste time', note: 'Productivity FM', url: 'https://www.youtube.com/watch?v=Gt7FjWCF85I' },
+  { id: 'pfm-maxfocus', name: 'music to achieve maximum focus', note: 'Productivity FM', url: 'https://www.youtube.com/watch?v=KJhTkzTPd4E' },
+  { id: 'pfm-successful', name: 'music for successful people', note: 'Productivity FM', url: 'https://www.youtube.com/watch?v=Jv-sRaDcDD8' },
+  { id: 'pfm-creative', name: 'music to unleash your creative potential', note: 'Productivity FM', url: 'https://www.youtube.com/watch?v=8xOPiidT-lQ' },
+  { id: 'pfm-deepwork', name: 'music to unlock deep work mode', note: 'Productivity FM', url: 'https://www.youtube.com/watch?v=FcfUAgKCsPk' },
+  { id: 'pfm-extreme', name: 'music that will make you extremely focused', note: 'Productivity FM', url: 'https://www.youtube.com/watch?v=qgzqVzcC6M4' },
+  { id: 'pfm-deephouse', name: 'deep house for serious work sessions', note: 'Productivity FM', url: 'https://www.youtube.com/watch?v=Hczqvmwyqf0' },
+  { id: 'pfm-getdone', name: 'music for people who get things done', note: 'Productivity FM', url: 'https://www.youtube.com/watch?v=AnuqOAS_uMU' },
+];
+
 /** Convert a YouTube / Spotify / SoundCloud share link into an embeddable URL. */
 export function toEmbed(url: string): string | null {
   try {
