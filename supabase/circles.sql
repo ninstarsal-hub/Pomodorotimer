@@ -1,7 +1,3 @@
--- Stillpoint study circles — paste into Supabase → SQL Editor → New query → Run. Safe to run more than once.
--- Friends in a circle see each other's weekly focus numbers (minutes, days studied, streak, "studying now").
--- Nothing else is shared: no notes, subjects, quiz results or ratings.
-
 -- ---------- tables ----------
 
 create table if not exists public.circles (
