@@ -175,7 +175,11 @@ function Board({ circle, me }: { circle: Circle; me: string }) {
         </div>
       )}
 
-      {data.togetherReady && <Together circle={circle} me={me} />}
+      {data.togetherReady ? (
+        <Together circle={circle} me={me} />
+      ) : (
+        data.loadedAt > 0 && <p className="muted small">Study together isn’t switched on for this site yet (supabase/circles-together.sql).</p>
+      )}
 
       <ol className="board-list">
         {rows.map((r) => (

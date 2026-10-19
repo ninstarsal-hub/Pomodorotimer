@@ -339,7 +339,10 @@ export function refreshCircles() {
       const [stats, cheers, blocks] = await Promise.all([
         a.stats(ids),
         a.cheersToday(),
-        a.activeBlocks(circles.map((c) => c.id)).catch(() => null),
+        a.activeBlocks(circles.map((c) => c.id)).catch((e) => {
+          console.warn('Study together unavailable:', e);
+          return null;
+        }),
       ]);
       set({ circles, members, stats, cheers, blocks: blocks ?? [], togetherReady: blocks !== null, error: '', loadedAt: Date.now() });
     } catch (e) {
