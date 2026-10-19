@@ -30,8 +30,8 @@ To turn on **Study circles** (friends see each other's weekly focus numbers), ru
 share minutes, days studied, streak and "studying now". Row-level security keeps each circle visible
 only to its members, and people can hide their numbers in the Circles panel.
 
-For **Study together** (shared focus blocks that friends can join), also run
-[`supabase/circles-together.sql`](supabase/circles-together.sql) once, after `circles.sql`. Until you do,
+For **Study together** (shared focus blocks that friends can join), run
+[`supabase/circles-together.sql`](supabase/circles-together.sql) once. It includes everything in `circles.sql`, so you can run it on its own. Until you do,
 circles work as before and the Study together card stays hidden.
 
 ## 3. Set up Google sign-in
