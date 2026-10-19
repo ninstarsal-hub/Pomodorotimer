@@ -22,6 +22,7 @@ export const BACKGROUND_PRESETS = [
 export const TIMER_PRESETS = [
   { id: 'classic', name: 'Classic', focus: 25, short: 5, long: 15, hint: '25 / 5 — the original Pomodoro' },
   { id: 'deep', name: 'Deep', focus: 50, short: 10, long: 20, hint: '50 / 10 — longer immersion for reading & writing' },
+  { id: 'flow', name: 'Flow', focus: 70, short: 15, long: 25, hint: '70 / 15 — a long block that stays short of the 90-minute dip' },
   { id: 'ultradian', name: 'Ultradian', focus: 90, short: 20, long: 30, hint: '90 / 20 — one full ultradian cycle' },
   { id: 'sprint', name: 'Sprint', focus: 15, short: 3, long: 10, hint: '15 / 3 — for low-energy days or getting started' },
 ];
