@@ -7,7 +7,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 ## Features
 
 **Focus**
-- Pomodoro timer with Classic (25/5), Deep (50/10), Ultradian (90/20) and Sprint (15/3) presets, or set your own lengths
+- Pomodoro timer with Classic (25/5), Deep (50/10), Flow (70/15), Ultradian (90/20) and Sprint (15/3) presets, or set your own lengths
 - Before each block you can write down what you plan to do. Afterwards you rate your focus and write a one-line summary from memory
 - Research-backed break ideas: doodling, drawing what you learned, going outside, an exercise snack, a brain dump, a power nap on long breaks, and more, each with a one-line summary of the study behind it. Breaks follow a recommended plan: doodle after the first block, a walk outside after the second, eyes-closed rest after the third, then a proper recharge (move, eat, maybe nap) on the long break. The plan can be turned off in Settings. Tap "Another idea" to shuffle, or browse the full list under Strategies
 - Break tools: a doodle pad (save your doodle as a PNG), an animated box-breathing guide, and break beats
