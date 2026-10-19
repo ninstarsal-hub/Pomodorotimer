@@ -4631,3 +4631,127 @@ input[type='date'] {
   cursor: pointer;
   bottom: 180px;
 }
+
+/* ---------- study together ---------- */
+.together {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px dashed var(--line-strong);
+}
+.together.is-live {
+  border: 1px solid rgba(111, 208, 140, 0.35);
+  background: color-mix(in srgb, #6fd08c 6%, var(--surface-2));
+}
+.together .row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.together .seg {
+  display: inline-flex;
+  gap: 4px;
+}
+.together-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+.together-people {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.together-people .muted {
+  margin-left: 6px;
+}
+.avatar.small {
+  width: 24px;
+  height: 24px;
+  font-size: 11px;
+}
+.together-in {
+  color: #6fd08c;
+}
+.studying-chip.is-join {
+  color: var(--text);
+  border-color: rgba(111, 208, 140, 0.6);
+}
+
+/* ---------- mini timer (always-on-top window) ---------- */
+.mini-body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.mini {
+  width: 100%;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.mini-mode {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  text-align: center;
+}
+.mini-group {
+  color: #6fd08c;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.mini-time {
+  font-size: 44px;
+  font-weight: 300;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.mini-bar {
+  width: 100%;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.mini-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.25s linear;
+}
+.mini.mode-short .mini-bar span,
+.mini.mode-long .mini-bar span {
+  background: #6fd08c;
+}
+.mini-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+.mini-controls .ctrl {
+  height: 34px;
+}
+.mini-controls .ctrl.primary {
+  min-width: 100px;
+  padding: 0 16px;
+  font-size: 13px;
+}
+.mini-controls .ctrl.ghost {
+  width: 34px;
+}
+.ctrl.ghost.is-active {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 45%, transparent);
+}

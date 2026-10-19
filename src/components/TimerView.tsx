@@ -1,4 +1,4 @@
-import { Pause, Play, RotateCcw, SkipForward } from 'lucide-react';
+import { Pause, PictureInPicture2, Play, RotateCcw, SkipForward } from 'lucide-react';
 import type { Mode, Task } from '../lib/types';
 import { fmtClock } from '../lib/storage';
 import { TIMER_PRESETS } from '../lib/content';
@@ -30,6 +30,9 @@ interface Props {
   /** This block uses other apps on purpose (shown when away tracking is on). */
   otherApps: boolean;
   onOtherApps?: (v: boolean) => void;
+  /** Open the always-on-top mini timer (only where the browser supports it). */
+  onMini?: () => void;
+  miniOpen?: boolean;
   children?: React.ReactNode;
 }
 
@@ -101,6 +104,16 @@ export function TimerView(p: Props) {
         <button className="ctrl ghost" onClick={p.onSkip} aria-label="Skip (S)" title="Skip (S)">
           <SkipForward size={18} strokeWidth={1.6} />
         </button>
+        {p.onMini && (
+          <button
+            className={`ctrl ghost ${p.miniOpen ? 'is-active' : ''}`}
+            onClick={p.onMini}
+            aria-label={p.miniOpen ? 'Close mini timer' : 'Mini timer — stays on top of other apps'}
+            title={p.miniOpen ? 'Close mini timer' : 'Mini timer — stays on top of other apps'}
+          >
+            <PictureInPicture2 size={18} strokeWidth={1.6} />
+          </button>
+        )}
       </div>
 
       {!isBreak ? (

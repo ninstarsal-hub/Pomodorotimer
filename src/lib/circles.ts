@@ -39,6 +39,16 @@ export interface Cheer {
   id: number;
 }
 
+/** A shared focus block: everyone who joins counts down to the same end time. */
+export interface GroupBlock {
+  id: string;
+  circleId: string;
+  startedBy: string;
+  minutes: number;
+  endsAt: number;
+  joined: string[];
+}
+
 /** Everything circles need from the server — Supabase in production, a stand-in in tests. */
 export interface CirclesApi {
   myCircles(): Promise<Circle[]>;
@@ -55,6 +65,11 @@ export interface CirclesApi {
   remove(circleId: string, userId: string): Promise<void>;
   setName(name: string): Promise<void>;
   cheer(circleId: string, to: string): Promise<boolean>;
+  /** Running blocks in these circles. Throws if study-together isn't set up on the server. */
+  activeBlocks(circleIds: string[]): Promise<GroupBlock[]>;
+  startBlock(circleId: string, minutes: number): Promise<{ id: string; endsAt: number }>;
+  joinBlock(blockId: string): Promise<number>;
+  leaveBlock(blockId: string): Promise<void>;
 }
 
 const mockFactory = (globalThis as { __STILLPOINT_CIRCLES_MOCK__?: () => CirclesApi }).__STILLPOINT_CIRCLES_MOCK__;
@@ -154,6 +169,36 @@ async function supabaseApi(): Promise<CirclesApi> {
       const { data, error } = await sb.rpc('send_cheer', { p_circle: id, p_to: to });
       fail(error);
       return !!data;
+    },
+    async activeBlocks(ids) {
+      if (!ids.length) return [];
+      const { data, error } = await sb.from('circle_blocks').select('id,circle_id,started_by,minutes,ends_at').in('circle_id', ids).gt('ends_at', new Date().toISOString());
+      fail(error);
+      if (!data?.length) return [];
+      const joins = await sb.from('circle_block_joins').select('block_id,user_id').in('block_id', data.map((b) => b.id)).order('joined_at');
+      fail(joins.error);
+      return data.map((b) => ({
+        id: b.id,
+        circleId: b.circle_id,
+        startedBy: b.started_by,
+        minutes: b.minutes,
+        endsAt: new Date(b.ends_at).getTime(),
+        joined: (joins.data ?? []).filter((j) => j.block_id === b.id).map((j) => j.user_id),
+      }));
+    },
+    async startBlock(id, minutes) {
+      const { data, error } = await sb.rpc('start_circle_block', { p_circle: id, p_minutes: minutes });
+      fail(error);
+      const d = data as { id: string; ends_at: string };
+      return { id: d.id, endsAt: new Date(d.ends_at).getTime() };
+    },
+    async joinBlock(id) {
+      const { data, error } = await sb.rpc('join_circle_block', { p_block: id });
+      fail(error);
+      return new Date(data as string).getTime();
+    },
+    async leaveBlock(id) {
+      fail((await sb.rpc('leave_circle_block', { p_block: id })).error);
     },
   };
 }
@@ -260,9 +305,12 @@ export interface CirclesState {
   members: Member[];
   stats: Record<string, MemberStats>;
   cheers: Cheer[];
+  blocks: GroupBlock[];
+  /** False until supabase/circles-together.sql has been run. */
+  togetherReady: boolean;
   loadedAt: number;
 }
-let state: CirclesState = { loading: false, error: '', circles: [], members: [], stats: {}, cheers: [], loadedAt: 0 };
+let state: CirclesState = { loading: false, error: '', circles: [], members: [], stats: {}, cheers: [], blocks: [], togetherReady: false, loadedAt: 0 };
 const listeners = new Set<() => void>();
 const set = (p: Partial<CirclesState>) => {
   state = { ...state, ...p };
@@ -288,8 +336,12 @@ export function refreshCircles() {
       const circles = await a.myCircles();
       const members = await a.members(circles.map((c) => c.id));
       const ids = [...new Set(members.map((m) => m.userId))];
-      const [stats, cheers] = await Promise.all([a.stats(ids), a.cheersToday()]);
-      set({ circles, members, stats, cheers, error: '', loadedAt: Date.now() });
+      const [stats, cheers, blocks] = await Promise.all([
+        a.stats(ids),
+        a.cheersToday(),
+        a.activeBlocks(circles.map((c) => c.id)).catch(() => null),
+      ]);
+      set({ circles, members, stats, cheers, blocks: blocks ?? [], togetherReady: blocks !== null, error: '', loadedAt: Date.now() });
     } catch (e) {
       set({ error: e instanceof Error ? e.message : 'Couldn’t load circles' });
     } finally {
@@ -301,5 +353,36 @@ export function refreshCircles() {
 }
 
 export function resetCircles() {
-  set({ circles: [], members: [], stats: {}, cheers: [], loadedAt: 0, error: '' });
+  set({ circles: [], members: [], stats: {}, cheers: [], blocks: [], loadedAt: 0, error: '' });
+}
+
+/* ---------- study together ---------- */
+
+/** Where your timer is when you're in a shared block. */
+export interface GroupRef {
+  blockId: string;
+  circleId: string;
+  endsAt: number;
+}
+
+/** Ask the timer (in App) to join a shared block. */
+export function joinGroupTimer(g: GroupRef) {
+  window.dispatchEvent(new CustomEvent<GroupRef>('stillpoint:groupBlock', { detail: g }));
+}
+
+export async function startTogether(circleId: string, minutes: number) {
+  const b = await (await circlesApi()).startBlock(circleId, minutes);
+  joinGroupTimer({ blockId: b.id, circleId, endsAt: b.endsAt });
+  await refreshCircles();
+}
+
+export async function joinTogether(block: GroupBlock) {
+  const endsAt = await (await circlesApi()).joinBlock(block.id);
+  joinGroupTimer({ blockId: block.id, circleId: block.circleId, endsAt });
+  await refreshCircles();
+}
+
+/** Names of the other people in a block (first names from your circles). */
+export function blockNames(block: GroupBlock, members: Member[], me: string) {
+  return block.joined.filter((u) => u !== me).map((u) => members.find((m) => m.userId === u && m.circleId === block.circleId)?.name ?? 'A friend');
 }

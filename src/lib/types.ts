@@ -184,4 +184,8 @@ export interface TimerState {
   awayMs?: number;
   /** When the tab was last hidden (null = visible). */
   awaySince?: number | null;
+  /** Length of this focus block when it differs from your setting (a shared block you joined). */
+  focusMs?: number;
+  /** The circle's shared block you're in, if any. */
+  group?: { blockId: string; circleId: string; endsAt: number };
 }

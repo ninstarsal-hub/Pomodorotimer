@@ -31,7 +31,9 @@ import { ListenReview } from './components/ListenReview';
 import { WeeklyRecapPrompt } from './components/WeeklyRecap';
 import { SharedImport } from './components/ShareNotes';
 import { CirclesAgent, CirclesPanel, StudyingNowChip } from './components/Circles';
-import { circlesAvailable } from './lib/circles';
+import { circlesAvailable, type GroupRef } from './lib/circles';
+import { MiniTimer, miniTimerSupported, openMiniWindow } from './components/MiniTimer';
+import { createPortal } from 'react-dom';
 import { useSync } from './lib/sync';
 import { SessionReview } from './components/SessionReview';
 import { SessionPill } from './components/SessionPill';
@@ -135,7 +137,7 @@ export default function App() {
   }, [timer.running]);
 
   const remaining = timer.running && timer.endAt ? Math.max(0, timer.endAt - now) : timer.remaining;
-  const total = durations[timer.mode];
+  const total = timer.mode === 'focus' && timer.focusMs ? timer.focusMs : durations[timer.mode];
   const elapsed = total - remaining;
 
   // Keep an untouched timer in sync with duration settings.
@@ -166,6 +168,8 @@ export default function App() {
     (mode: Mode, autoStart: boolean, patch: Partial<TimerState> = {}) => {
       setTimer((t) => ({
         ...t,
+        focusMs: undefined,
+        group: undefined,
         ...patch,
         mode,
         running: autoStart,
@@ -182,7 +186,7 @@ export default function App() {
     (skipped: boolean) => {
       const t = timer;
       if (t.mode === 'focus') {
-        const minutes = skipped ? Math.floor(elapsed / 60_000) : settings.focusMin;
+        const minutes = skipped ? Math.floor(elapsed / 60_000) : t.focusMs ? Math.round(t.focusMs / 60_000) : settings.focusMin;
         let sessionId: string | null = null;
         if (minutes >= 1) {
           sessionId = uid();
@@ -272,13 +276,58 @@ export default function App() {
   }, [settings.notifications, settings.warmupQuiz, timer.started, timer.mode, earlierCards, reviews, setTimer, store.liveStudy?.id]);
 
   const pause = useCallback(() => {
-    setTimer((t) => ({ ...t, running: false, endAt: null, remaining: t.endAt ? Math.max(0, t.endAt - Date.now()) : t.remaining }));
+    // Pausing a shared block leaves it; the rest of the block carries on as your own.
+    setTimer((t) => ({ ...t, running: false, endAt: null, remaining: t.endAt ? Math.max(0, t.endAt - Date.now()) : t.remaining, group: undefined }));
   }, [setTimer]);
 
   const reset = useCallback(() => {
-    setTimer((t) => ({ ...t, running: false, started: false, endAt: null, remaining: durations[t.mode], checkpointFired: false, awayCount: 0, awayMs: 0, awaySince: null }));
+    setTimer((t) => ({ ...t, running: false, started: false, endAt: null, remaining: durations[t.mode], checkpointFired: false, awayCount: 0, awayMs: 0, awaySince: null, focusMs: undefined, group: undefined }));
     setCheckpoint(false);
   }, [durations, setTimer]);
+
+  // Study together: a circle's shared block. Your timer counts down to the same end time as everyone else's.
+  const joinGroup = useCallback(
+    (g: GroupRef) => {
+      const rem = g.endsAt - Date.now();
+      if (rem < 60_000) return;
+      // Save the part of a solo focus block you were already in.
+      if (timer.mode === 'focus' && timer.started && timer.group?.blockId !== g.blockId) finishPhase(true);
+      store.ensureStudySession();
+      setTimer((t) => ({
+        ...t,
+        mode: 'focus',
+        running: true,
+        started: true,
+        endAt: g.endsAt,
+        remaining: rem,
+        focusMs: rem,
+        group: g,
+        checkpointFired: false,
+        awayCount: 0,
+        awayMs: 0,
+        awaySince: null,
+      }));
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [timer.mode, timer.started, timer.group?.blockId, finishPhase, setTimer],
+  );
+  const joinGroupRef = useRef(joinGroup);
+  joinGroupRef.current = joinGroup;
+  useEffect(() => {
+    const on = (e: Event) => joinGroupRef.current((e as CustomEvent<GroupRef>).detail);
+    window.addEventListener('stillpoint:groupBlock', on);
+    return () => window.removeEventListener('stillpoint:groupBlock', on);
+  }, []);
+
+  // Mini timer: a small always-on-top window (Chrome/Edge on desktop).
+  const [mini, setMini] = useState<Window | null>(null);
+  const openMini = useCallback(async () => {
+    if (mini) return mini.close();
+    const w = await openMiniWindow().catch(() => null);
+    if (!w) return;
+    w.addEventListener('pagehide', () => setMini(null));
+    setMini(w);
+  }, [mini]);
 
   const switchMode = useCallback((mode: Mode) => goTo(mode, false), [goTo]);
 
@@ -441,6 +490,8 @@ export default function App() {
           onOpenToday={() => setPanel('today')}
           onOpenSound={() => setPanel('sound')}
           onResetSet={() => goTo('focus', false, { cycle: 0, intention: '', recall: '' })}
+          onMini={miniTimerSupported ? () => void openMini() : undefined}
+          miniOpen={!!mini}
           otherApps={!!timer.otherApps}
           onOtherApps={settings.awayTracking ? (v) => setTimer((t) => ({ ...t, otherApps: v })) : undefined}
         >
@@ -450,7 +501,7 @@ export default function App() {
 
       <footer className="footer fade-zen">
         <ParkingInput onOpen={() => setPanel('today')} />
-        {circlesAvailable && <StudyingNowChip onOpen={() => setPanel('circles')} />}
+        {circlesAvailable && <StudyingNowChip group={timer.group} onOpen={() => setPanel('circles')} />}
         {store.liveStudy && !timer.running && (
           <SessionPill
             title={sessionTitle(store.liveStudy)}
@@ -461,7 +512,25 @@ export default function App() {
         <GoalStat minutes={todayMinutes} goal={settings.dailyGoalMin} onClick={() => setPanel('stats')} />
       </footer>
 
-      {circlesAvailable && <CirclesAgent studyingUntil={timer.mode === 'focus' && timer.running ? timer.endAt : null} />}
+      {circlesAvailable && <CirclesAgent studyingUntil={timer.mode === 'focus' && timer.running ? timer.endAt : null} group={timer.group} />}
+      {mini &&
+        createPortal(
+          <MiniTimer
+            win={mini}
+            mode={timer.mode}
+            remaining={remaining}
+            total={total}
+            running={timer.running}
+            started={timer.started}
+            endAt={timer.endAt}
+            group={timer.group}
+            onStart={start}
+            onPause={pause}
+            onSkip={() => finishPhase(true)}
+            onTick={setNow}
+          />,
+          mini.document.body,
+        )}
       <InAppBanner />
       <SyncChoice />
       <MediaDock />

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Crown, Flame, LogOut, RefreshCw, Settings2, UserMinus, Users } from 'lucide-react';
-import { boardRows, circlesApi, refreshCircles, useCircles, type BoardRow, type Circle } from '../lib/circles';
+import { blockNames, boardRows, circlesApi, joinTogether, refreshCircles, startTogether, useCircles, type BoardRow, type Circle, type GroupBlock, type GroupRef } from '../lib/circles';
 import { signIn, useSync } from '../lib/sync';
-import { fmtMinutes, usePersistentState } from '../lib/storage';
+import { fmtClock, fmtMinutes, usePersistentState } from '../lib/storage';
 import { useStore } from '../store';
 
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -174,6 +174,8 @@ function Board({ circle, me }: { circle: Circle; me: string }) {
           </span>
         </div>
       )}
+
+      {data.togetherReady && <Together circle={circle} me={me} />}
 
       <ol className="board-list">
         {rows.map((r) => (
@@ -463,12 +465,138 @@ function MySharing() {
   );
 }
 
-/** Main-screen nudge: friends in a focus block right now. */
-export function StudyingNowChip({ onOpen }: { onOpen: () => void }) {
+/** Ticks once a second while mounted. */
+function useNow() {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return now;
+}
+
+const LENGTHS = [25, 50, 70, 90];
+
+/** Study together: start a shared block, or join the one that's running. */
+function Together({ circle, me }: { circle: Circle; me: string }) {
+  const data = useCircles();
+  const { settings } = useStore();
+  const now = useNow();
+  const [len, setLen] = useState(() => (LENGTHS.includes(settings.focusMin) ? settings.focusMin : 50));
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const block = data.blocks.find((b) => b.circleId === circle.id && b.endsAt > now);
+  const run = async (fn: () => Promise<void>) => {
+    setBusy(true);
+    setError('');
+    try {
+      await fn();
+    } catch (e) {
+      setError(errMsg(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (block) {
+    const inIt = block.joined.includes(me);
+    const starter = data.members.find((m) => m.userId === block.startedBy && m.circleId === circle.id)?.name ?? 'Someone';
+    const people = block.joined.map((u) => data.members.find((m) => m.userId === u && m.circleId === circle.id)?.name ?? 'A friend');
+    const left = block.endsAt - now;
+    return (
+      <div className="together is-live">
+        <div className="row between">
+          <div>
+            <div className="together-title">
+              <i className="live-dot" /> Studying together · {fmtClock(left)} left
+            </div>
+            <div className="muted small">
+              {block.startedBy === me ? 'You' : starter} started a {block.minutes}-min block
+            </div>
+          </div>
+          {inIt ? (
+            <span className="together-in small">You’re in ✓</span>
+          ) : (
+            <button className="btn small primary" disabled={busy || left < 60_000} onClick={() => void run(() => joinTogether(block))}>
+              Join
+            </button>
+          )}
+        </div>
+        <div className="together-people">
+          {people.map((n, i) => (
+            <span key={block.joined[i]} className="avatar small" title={n}>
+              {n.slice(0, 1).toUpperCase()}
+            </span>
+          ))}
+          <span className="muted small">
+            {people.length === 1 ? '1 person' : `${people.length} people`} in the room
+          </span>
+        </div>
+        {inIt && <p className="muted small">Pausing or skipping leaves the room — the rest of the block carries on as your own.</p>}
+        {error && <p className="error small">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="together">
+      <div className="together-title">Study together</div>
+      <p className="muted small">Start a focus block and anyone in the circle can join — everyone’s timer ends at the same time.</p>
+      <div className="row">
+        <div className="seg" role="radiogroup" aria-label="Block length">
+          {LENGTHS.map((m) => (
+            <button key={m} role="radio" aria-checked={len === m} className={`chip ${len === m ? 'is-active' : ''}`} onClick={() => setLen(m)}>
+              {m}m
+            </button>
+          ))}
+        </div>
+        <button className="btn small primary" disabled={busy} onClick={() => void run(() => startTogether(circle.id, len))}>
+          Start together
+        </button>
+      </div>
+      {error && <p className="error small">{error}</p>}
+    </div>
+  );
+}
+
+/** Main-screen nudge: who you're studying with, a block you can join, or friends in a focus block right now. */
+export function StudyingNowChip({ group, onOpen }: { group?: GroupRef; onOpen: () => void }) {
   const sync = useSync();
   const data = useCircles();
+  const [busy, setBusy] = useState(false);
   if (!sync.user) return null;
+  const me = sync.user.id;
   const now = Date.now();
+
+  const mine = group && data.blocks.find((b) => b.id === group.blockId && b.endsAt > now);
+  if (mine) {
+    const others = blockNames(mine, data.members, me);
+    return (
+      <button className="studying-chip" onClick={onOpen} title="See your circle">
+        <i className="live-dot" /> {others.length ? `Studying together with ${others.slice(0, 2).join(' & ')}${others.length > 2 ? ` +${others.length - 2}` : ''}` : 'Studying together — waiting for friends'}
+      </button>
+    );
+  }
+  const open: GroupBlock | undefined = data.blocks.find((b) => !b.joined.includes(me) && b.endsAt - now > 2 * 60_000);
+  if (open && !group) {
+    const starter = data.members.find((m) => m.userId === open.startedBy && m.circleId === open.circleId)?.name ?? 'A friend';
+    return (
+      <button
+        className="studying-chip is-join"
+        disabled={busy}
+        title="Your timer will end at the same time as theirs"
+        onClick={() => {
+          setBusy(true);
+          void joinTogether(open)
+            .catch(() => onOpen())
+            .finally(() => setBusy(false));
+        }}
+      >
+        <i className="live-dot" /> Join {starter}’s block · {Math.ceil((open.endsAt - now) / 60_000)} min left
+      </button>
+    );
+  }
+
   const ids = new Set(
     data.members
       .filter((m) => m.userId !== sync.user!.id)
@@ -491,7 +619,7 @@ export function StudyingNowChip({ onOpen }: { onOpen: () => void }) {
  * Runs in the background while signed in: shares your numbers (debounced), refreshes the board,
  * and shows a small toast when a friend cheers you on.
  */
-export function CirclesAgent({ studyingUntil }: { studyingUntil: number | null }) {
+export function CirclesAgent({ studyingUntil, group }: { studyingUntil: number | null; group?: GroupRef }) {
   const sync = useSync();
   const data = useCircles();
   const { sessions, settings } = useStore();
@@ -502,7 +630,7 @@ export function CirclesAgent({ studyingUntil }: { studyingUntil: number | null }
   useEffect(() => {
     if (!uid) return;
     void refreshCircles();
-    const id = window.setInterval(() => document.visibilityState === 'visible' && void refreshCircles(), 60_000);
+    const id = window.setInterval(() => document.visibilityState === 'visible' && void refreshCircles(), 30_000);
     const vis = () => document.visibilityState === 'visible' && void refreshCircles();
     document.addEventListener('visibilitychange', vis);
     return () => {
@@ -520,6 +648,18 @@ export function CirclesAgent({ studyingUntil }: { studyingUntil: number | null }
     }, 1500);
     return () => window.clearTimeout(t);
   }, [uid, inCircle, sessions, studyingUntil, settings.shareCircleStats]);
+
+  // Left a shared block early (paused, skipped, reset, or joined another)? Tell the room.
+  const prevGroup = useRef(group);
+  useEffect(() => {
+    const prev = prevGroup.current;
+    prevGroup.current = group;
+    if (!prev || prev.blockId === group?.blockId || Date.now() > prev.endsAt - 5_000) return;
+    void circlesApi()
+      .then((a) => a.leaveBlock(prev.blockId))
+      .then(() => refreshCircles())
+      .catch(() => {});
+  }, [group]);
 
   // Cheers you haven't seen yet.
   useEffect(() => {
