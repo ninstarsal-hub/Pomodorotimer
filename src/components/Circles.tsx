@@ -111,6 +111,7 @@ function Board({ circle, me }: { circle: Circle; me: string }) {
   const cheeredToday = new Set(data.cheers.filter((c) => c.from === me && c.circleId === circle.id && c.day === today).map((c) => c.to));
   const cheersFor = (uid: string) => data.cheers.filter((c) => c.to === uid && c.circleId === circle.id && c.day === today).length;
   const studying = rows.filter((r) => r.studyingNow && !r.isMe).length;
+  const todayTotal = rows.reduce((a, r) => a + r.today, 0);
 
   const act = async (key: string, fn: () => Promise<unknown>) => {
     setBusy(key);
@@ -143,6 +144,7 @@ function Board({ circle, me }: { circle: Circle; me: string }) {
           <h3 className="board-title">{circle.name}</h3>
           <div className="muted small">
             {rows.length} member{rows.length === 1 ? '' : 's'}
+            {todayTotal > 0 && <> · {fmtMinutes(todayTotal)} together today</>}
             {studying > 0 && (
               <span className="studying-note">
                 {' '}
@@ -243,12 +245,17 @@ function BoardItem({ r, top, cheers, cheered, busy, onCheer }: { r: BoardRow; to
         {r.hidden ? (
           <span className="muted small">Keeps their stats private</span>
         ) : (
-          <span className="board-days" aria-label={`Studied ${r.days} of 7 days this week`}>
-            {DAYS.map((d, i) => (
-              <i key={i} className={r.dayMask & (1 << i) ? 'on' : ''} title={d}>
-                {d}
-              </i>
-            ))}
+          <span className="board-week">
+            <span className="board-days" aria-label={`Studied ${r.days} of 7 days this week`}>
+              {DAYS.map((d, i) => (
+                <i key={i} className={r.dayMask & (1 << i) ? 'on' : ''} title={d}>
+                  {d}
+                </i>
+              ))}
+            </span>
+            <span className={`board-today ${r.today ? 'has-time' : ''}`} title="Focus time today">
+              {r.today ? `${fmtMinutes(r.today)} today` : 'not yet today'}
+            </span>
           </span>
         )}
       </span>

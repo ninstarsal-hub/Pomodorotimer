@@ -311,6 +311,8 @@ export interface BoardRow {
   isMe: boolean;
   hidden: boolean;
   minutes: number;
+  /** Focus minutes today (0 if they haven't studied or synced today). */
+  today: number;
   days: number;
   dayMask: number;
   streak: number;
@@ -326,6 +328,8 @@ export function boardRows(members: Member[], stats: Record<string, MemberStats>,
       const s = stats[m.userId];
       const current = s && s.weekStart === week;
       const fresh = s && now - new Date(s.updatedAt).getTime() < 2 * 86_400_000;
+      // Today's number is only today's if it was last updated today.
+      const updatedToday = s && dayKey(new Date(s.updatedAt)) === dayKey();
       return {
         userId: m.userId,
         name: m.name,
@@ -333,6 +337,7 @@ export function boardRows(members: Member[], stats: Record<string, MemberStats>,
         isMe: m.userId === me,
         hidden: !s,
         minutes: current ? s.weekMinutes : 0,
+        today: updatedToday ? s.todayMinutes : 0,
         days: current ? popcount(s.weekDays) : 0,
         dayMask: current ? s.weekDays : 0,
         streak: s && fresh ? s.streak : 0,
