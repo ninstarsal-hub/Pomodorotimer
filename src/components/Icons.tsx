@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Lock } from 'lucide-react';
 import { useStore } from '../store';
-import { ICONS, achStats, earnedIds, getIcon, isUnlocked, type IconDef } from '../lib/achievements';
+import { ICONS, achStats, earnedIds, getIcon, hasBadge, type IconDef } from '../lib/achievements';
+import { useCircles } from '../lib/circles';
 
 export function useAchievements() {
   const { sessions, reviewLog, exams, decks, tasks } = useStore();
-  return useMemo(() => achStats({ sessions, reviewLog, exams, decks, tasks }), [sessions, reviewLog, exams, decks, tasks]);
+  const circles = useCircles().circles.length;
+  return useMemo(() => achStats({ sessions, reviewLog, exams, decks, tasks, circles }), [sessions, reviewLog, exams, decks, tasks, circles]);
 }
 
 /** A Stillpoint badge: a coloured coin with a line-drawn symbol; earned ones get a bronze, silver or gold ring. */
@@ -13,11 +15,11 @@ export function Badge({ icon, size = 32, locked, children }: { icon: IconDef; si
   const Glyph = icon.glyph;
   return (
     <span
-      className={`badge ${icon.tier ? `tier-${icon.tier}` : ''} ${locked ? 'is-locked' : ''}`}
+      className={`badge style-${icon.style} ${icon.tier ? `tier-${icon.tier}` : ''} ${locked ? 'is-locked' : ''}`}
       style={{ width: size, height: size, ['--hue' as string]: String(icon.hue) }}
       aria-hidden
     >
-      <Glyph size={Math.round(size * 0.5)} strokeWidth={1.8} />
+      <Glyph size={Math.round(size * (icon.style === 'sticker' ? 0.56 : 0.52))} strokeWidth={icon.style === 'sticker' ? 2 : 1.8} />
       {children}
     </span>
   );
@@ -75,24 +77,31 @@ function Tile({ icon, unlocked, active, onPick, progress }: { icon: IconDef; unl
 /** Free icons, then the ones you earn — each locked one shows what it takes and how close you are. */
 export function IconPicker({ value, onPick }: { value: string; onPick: (id: string) => void }) {
   const stats = useAchievements();
-  const free = ICONS.filter((i) => !i.unlock);
+  const { earnedBadges } = useStore();
+  const groups = ['Stillpoint', 'Study', 'Nature', 'Animals', 'Food', 'Fun'] as const;
   const earned = ICONS.filter((i) => i.unlock);
   return (
     <div className="icon-picker">
-      <div className="field-label">Pick any</div>
-      <div className="icon-grid">
-        <button className={`icon-tile ${!value ? 'is-active' : ''}`} onClick={() => onPick('')} title="Your initial" aria-label="Use my initial">
-          <span className="avatar">Aa</span>
-        </button>
-        {free.map((i) => (
-          <Tile key={i.id} icon={i} unlocked active={value === i.id} onPick={() => onPick(i.id)} />
-        ))}
-      </div>
+      {groups.map((g, gi) => (
+        <div key={g} className="icon-group">
+          <div className="field-label">{g}</div>
+          <div className="icon-grid">
+            {gi === 0 && (
+              <button className={`icon-tile ${!value ? 'is-active' : ''}`} onClick={() => onPick('')} title="Your initial" aria-label="Use my initial">
+                <span className="avatar">Aa</span>
+              </button>
+            )}
+            {ICONS.filter((i) => i.group === g).map((i) => (
+              <Tile key={i.id} icon={i} unlocked active={value === i.id} onPick={() => onPick(i.id)} />
+            ))}
+          </div>
+        </div>
+      ))}
       <div className="field-label">Earned by studying</div>
       <div className="icon-grid earned">
         {earned.map((i) => {
           const p = i.unlock!.progress(stats);
-          return <Tile key={i.id} icon={i} unlocked={isUnlocked(i, stats)} active={value === i.id} progress={p} onPick={() => onPick(i.id)} />;
+          return <Tile key={i.id} icon={i} unlocked={hasBadge(i, stats, earnedBadges)} active={value === i.id} progress={p} onPick={() => onPick(i.id)} />;
         })}
       </div>
     </div>
@@ -101,13 +110,13 @@ export function IconPicker({ value, onPick }: { value: string; onPick: (id: stri
 
 /** Progress panel: your icon, how many you've earned, and what's next. */
 export function AchievementsCard() {
-  const { settings, setSettings } = useStore();
+  const { settings, setSettings, earnedBadges } = useStore();
   const stats = useAchievements();
   const earned = ICONS.filter((i) => i.unlock);
-  const got = earned.filter((i) => isUnlocked(i, stats));
+  const got = earned.filter((i) => hasBadge(i, stats, earnedBadges));
   // Closest locked icons, by % done.
   const next = earned
-    .filter((i) => !isUnlocked(i, stats))
+    .filter((i) => !hasBadge(i, stats, earnedBadges))
     .map((i) => {
       const [a, b] = i.unlock!.progress(stats);
       return { i, a, b, pct: a / b };
@@ -154,36 +163,45 @@ export function AchievementsCard() {
   );
 }
 
-/** Watches for newly earned icons and celebrates them. */
+const ANNOUNCE = 'stillpoint:badgeToast';
+
+/** Watches for newly earned badges, keeps them forever and celebrates them. */
 export function UnlockToast({ onOpen, quiet }: { onOpen: () => void; quiet: boolean }) {
   const stats = useAchievements();
-  const [msg, setMsg] = useState<string | null>(null);
+  const { earnedBadges, setEarnedBadges } = useStore();
+  // Badges still to celebrate on this device (kept until shown, so a reload doesn't swallow the moment).
+  const [msg, setMsg] = useState<string | null>(() => localStorage.getItem(ANNOUNCE));
   const ids = earnedIds(stats).join(',');
 
+  // Save new badges for good (they sync like the rest of your data), and celebrate them.
   useEffect(() => {
     if (quiet) return;
-    const now = ids ? ids.split(',') : [];
-    const raw = localStorage.getItem('stillpoint:iconsSeen');
-    const seen: string[] = raw ? JSON.parse(raw) : [];
-    const fresh = now.filter((id) => !seen.includes(id));
+    const fresh = (ids ? ids.split(',') : []).filter((id) => !earnedBadges.includes(id));
     if (!fresh.length) return;
-    localStorage.setItem('stillpoint:iconsSeen', JSON.stringify([...new Set([...seen, ...now])]));
-    setMsg(fresh.join(','));
-  }, [ids, quiet]);
+    setEarnedBadges((kept) => [...new Set([...kept, ...fresh])]);
+    const all = [...new Set([...(localStorage.getItem(ANNOUNCE)?.split(',') ?? []), ...fresh])].join(',');
+    localStorage.setItem(ANNOUNCE, all);
+    setMsg(all);
+  }, [ids, quiet, earnedBadges, setEarnedBadges]);
 
+  const done = () => {
+    localStorage.removeItem(ANNOUNCE);
+    setMsg(null);
+  };
   useEffect(() => {
-    if (!msg) return;
-    const t = window.setTimeout(() => setMsg(null), 8000);
+    if (!msg || quiet) return;
+    const t = window.setTimeout(done, 9000);
     return () => window.clearTimeout(t);
-  }, [msg]);
+  }, [msg, quiet]);
 
-  if (!msg) return null;
+  if (!msg || quiet) return null;
   const fresh = msg.split(',').map((id) => getIcon(id)!).filter(Boolean);
+  if (!fresh.length) return null;
   return (
     <button
       className="update-toast unlock-toast"
       onClick={() => {
-        setMsg(null);
+        done();
         onOpen();
       }}
     >

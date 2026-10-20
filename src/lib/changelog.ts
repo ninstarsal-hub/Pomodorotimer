@@ -14,8 +14,8 @@ export const RELEASES: Release[] = [
     id: '2026-10-21',
     title: 'Badges',
     items: [
-      { title: 'Pick a badge', body: 'Choose a Stillpoint badge to show next to your name in study circles.' },
-      { title: 'Earn rare ones', body: '18 badges unlock as you study — 7-day streaks, 100 hours, night-owl blocks and more. Find them in Progress.' },
+      { title: 'Pick a badge', body: 'Choose from 76 badges — animals, food, nature, neon and Stillpoint originals — to show next to your name in circles.' },
+      { title: 'Earn rare ones', body: '22 badges to earn — streaks, 100 hours, night-owl blocks, a comeback after a week off and more. Once earned, they’re yours for good. Find them in Progress.' },
     ],
   },
   {

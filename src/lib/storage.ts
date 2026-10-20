@@ -22,7 +22,7 @@ export function load<T>(key: string, fallback: T): T {
 /* ---------- change tracking (for account sync) ---------- */
 
 /** Keys that describe this device only, never synced. */
-export const LOCAL_ONLY = new Set(['timer', 'lastBackup', 'backupSnooze', 'installDismissed', 'syncMeta', 'syncSince', 'syncUser', 'pendingJoin', 'cheersSeen']);
+export const LOCAL_ONLY = new Set(['timer', 'lastBackup', 'backupSnooze', 'installDismissed', 'syncMeta', 'syncSince', 'syncUser', 'pendingJoin', 'cheersSeen', 'badgeToast']);
 const META = PREFIX + 'syncMeta';
 
 /** When each key last changed on this device (ms). Used to keep the newest copy when syncing. */

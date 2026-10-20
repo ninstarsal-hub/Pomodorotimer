@@ -4961,6 +4961,47 @@ input[type='date'] {
 .badge.tier-gold {
   --ring: 0 0 0 2px #e8c266, 0 0 12px rgba(232, 194, 102, 0.35);
 }
+/* Stillpoint: matte black with your accent colour, like the logo */
+.badge.style-mono {
+  color: var(--accent);
+  background: radial-gradient(circle at 34% 28%, #2a2a2e, #121214 68%, #0b0b0c);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.5),
+    0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 0 10px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.badge.style-mono svg {
+  filter: drop-shadow(0 0 3px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+/* Sticker: bright pastel with a white edge */
+.badge.style-sticker {
+  color: hsl(var(--hue) 55% 22%);
+  background: radial-gradient(circle at 35% 30%, hsl(var(--hue) 85% 88%), hsl(var(--hue) 70% 74%));
+  box-shadow:
+    0 0 0 2px #f5f2ea,
+    0 2px 5px rgba(0, 0, 0, 0.45);
+}
+.badge.style-sticker svg {
+  filter: none;
+}
+/* Neon: dark with a glowing outline */
+.badge.style-neon {
+  color: hsl(var(--hue) 95% 68%);
+  background: radial-gradient(circle at 50% 40%, hsl(var(--hue) 60% 12%), #08080a 72%);
+  box-shadow:
+    inset 0 0 8px hsl(var(--hue) 90% 50% / 0.25),
+    0 0 0 1px hsl(var(--hue) 90% 62% / 0.6),
+    0 0 10px hsl(var(--hue) 90% 55% / 0.3);
+}
+.badge.style-neon svg {
+  filter: drop-shadow(0 0 3px hsl(var(--hue) 95% 60% / 0.85));
+}
+.icon-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .badge.is-locked {
   filter: grayscale(1);
   opacity: 0.32;

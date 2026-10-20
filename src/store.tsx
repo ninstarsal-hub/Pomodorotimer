@@ -80,6 +80,8 @@ function useStoreValue() {
   const [decks, setDecks] = usePersistentState<Deck[]>('decks', []);
   const [reviews, setReviews] = usePersistentState<Record<string, ReviewState>>('reviews', {});
   const [reviewLog, setReviewLog] = usePersistentState<ReviewLog>('reviewLog', {});
+  /** Badges you've earned — kept forever, even if the history behind them is later deleted. */
+  const [earnedBadges, setEarnedBadges] = usePersistentState<string[]>('earnedBadges', []);
   const [distractions, setDistractions] = usePersistentState<Distraction[]>('distractions', []);
   const [activeTaskId, setActiveTaskId] = usePersistentState<string | null>('activeTask', null);
   const [soundParams, setSoundParams] = usePersistentState<SoundParams>('sound', SOUND_PRESETS[0].params);
@@ -190,6 +192,8 @@ function useStoreValue() {
     reviews,
     setReviews,
     reviewLog,
+    earnedBadges,
+    setEarnedBadges,
     logReview,
     setReviewLog,
     distractions,
