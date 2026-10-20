@@ -52,6 +52,9 @@ export function getClient(): Promise<SupabaseClient> {
 }
 
 /** Supabase is only downloaded once sync is actually used. */
+/** Supabase keeps your sign-in in localStorage under sb-<project>-auth-token. */
+const hasSavedSession = () => Object.keys(localStorage).some((k) => k.startsWith('sb-') && k.endsWith('-auth-token'));
+
 async function supabaseBackend(): Promise<SyncBackend> {
   const sb = await getClient();
   type MetaUser = { id: string; email?: string; user_metadata?: { given_name?: string; full_name?: string; name?: string } };
@@ -61,8 +64,15 @@ async function supabaseBackend(): Promise<SyncBackend> {
   const path = (uid: string, key: string) => `${uid}/${encodeURIComponent(key)}`;
   return {
     async getUser() {
-      const { data } = await sb.auth.getSession();
-      return toUser(data.session?.user);
+      // Renewing an expired sign-in can fail on a flaky connection (e.g. a laptop just waking up). The sign-in is
+      // still saved, so try again rather than showing you as signed out.
+      for (let attempt = 0; ; attempt++) {
+        const { data, error } = await sb.auth.getSession();
+        if (data.session) return toUser(data.session.user);
+        if (!error || !hasSavedSession()) return null;
+        if (attempt >= 3) throw new Error('Couldn’t reach the sign-in server — will retry when you’re back online');
+        await new Promise((r) => setTimeout(r, 1000 * 2 ** attempt));
+      }
     },
     onAuthChange(cb) {
       sb.auth.onAuthStateChange((_e, session) => cb(toUser(session?.user)));
@@ -323,9 +333,27 @@ export async function startSync() {
   if (signingIn) history.replaceState(null, '', location.pathname);
   await onUser(user);
   // Pick up changes from other devices when you come back to the tab, and every few minutes.
-  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && void syncNow());
-  window.addEventListener('online', () => void syncNow());
-  window.setInterval(() => document.visibilityState === 'visible' && void syncNow(), 3 * 60_000);
+  // If the sign-in couldn't be checked at startup (offline), check again when you're back.
+  const recheck = () => {
+    if (state.user || !backend) return void syncNow();
+    void backend
+      .getUser()
+      .then((u) => {
+        if (u) set({ error: '' });
+        return onUser(u);
+      })
+      .catch(() => {});
+  };
+  document.addEventListener('visibilitychange', () => document.visibilityState === 'visible' && recheck());
+  window.addEventListener('online', recheck);
+  let tick = 0;
+  window.setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    tick++;
+    // Signed out with a saved sign-in (it couldn't be renewed earlier): check every minute. Otherwise sync every 3.
+    if (!state.user && hasSavedSession()) recheck();
+    else if (tick % 3 === 0) void syncNow();
+  }, 60_000);
 }
 
 export async function signIn() {
