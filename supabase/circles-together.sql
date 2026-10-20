@@ -206,6 +206,21 @@ begin
   end loop;
 end $$;
 
+-- ---------- profile icons ----------
+alter table public.circle_members add column if not exists avatar text;
+do $$ begin
+  alter table public.circle_members add constraint circle_members_avatar_chk check (avatar is null or avatar ~ '^[a-z0-9-]{1,24}$');
+exception when duplicate_object then null; end $$;
+
+create or replace function public.set_avatar(p_icon text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is null then raise exception 'not signed in'; end if;
+  update circle_members set avatar = nullif(p_icon, '') where user_id = auth.uid();
+end; $$;
+revoke all on function public.set_avatar(text) from public, anon;
+grant execute on function public.set_avatar(text) to authenticated;
+
 -- Deleting your account hands circles you created to the next member instead of deleting them for everyone.
 create or replace function public.delete_my_account()
 returns void language plpgsql security definer set search_path = public as $$

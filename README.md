@@ -11,6 +11,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - Today card under the timer: due reviews, assignments due soon, today's exam-plan tasks and to-dos, with progress for the day
 - Undo after deleting notes, tasks, exams, diagrams or practice sets (Undo button or Ctrl/Cmd+Z)
 - Exam wrap-up: the day after an exam, log how it went, your grade and which parts felt shaky, then quiz those parts or put them back into your reviews for the final
+- Badges: pick a profile badge for study circles, and earn 18 more by studying (streaks, total hours, night-owl blocks, study-together blocks…); see them in Progress
 - Mini timer: a small always-on-top window that stays visible while you work in other apps (Chrome and Edge on desktop)
 - Before each block you can write down what you plan to do. Afterwards you rate your focus and write a one-line summary from memory
 - Research-backed break ideas: doodling, drawing what you learned, going outside, an exercise snack, a brain dump, a power nap on long breaks, and more, each with a one-line summary of the study behind it. Breaks follow a recommended plan: doodle after the first block, a walk outside after the second, eyes-closed rest after the third, then a proper recharge (move, eat, maybe nap) on the long break. The plan can be turned off in Settings. Tap "Another idea" to shuffle, or browse the full list under Strategies

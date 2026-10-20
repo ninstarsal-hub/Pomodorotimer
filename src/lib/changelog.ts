@@ -11,6 +11,14 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    id: '2026-10-21',
+    title: 'Badges',
+    items: [
+      { title: 'Pick a badge', body: 'Choose a Stillpoint badge to show next to your name in study circles.' },
+      { title: 'Earn rare ones', body: '18 badges unlock as you study — 7-day streaks, 100 hours, night-owl blocks and more. Find them in Progress.' },
+    ],
+  },
+  {
     id: '2026-10-20',
     title: 'Wrap-ups, undo & a Today card',
     items: [

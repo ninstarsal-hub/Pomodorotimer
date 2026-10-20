@@ -34,6 +34,8 @@ export interface Member {
   circleId: string;
   userId: string;
   name: string;
+  /** Profile icon id (lib/achievements). */
+  avatar?: string | null;
 }
 export interface Cheer {
   circleId: string;
@@ -68,6 +70,7 @@ export interface CirclesApi {
   newInvite(circleId: string): Promise<string>;
   remove(circleId: string, userId: string): Promise<void>;
   setName(name: string): Promise<void>;
+  setAvatar(icon: string): Promise<void>;
   cheer(circleId: string, to: string): Promise<boolean>;
   /** Running blocks in these circles. Throws if study-together isn't set up on the server. */
   activeBlocks(circleIds: string[]): Promise<GroupBlock[]>;
@@ -84,6 +87,7 @@ const fail = (e: { message?: string } | null) => {
 };
 
 let hasPrevColumns = true;
+let hasAvatarColumn = true;
 
 async function supabaseApi(): Promise<CirclesApi> {
   const sb = await getClient();
@@ -95,9 +99,16 @@ async function supabaseApi(): Promise<CirclesApi> {
     },
     async members(ids) {
       if (!ids.length) return [];
-      const { data, error } = await sb.from('circle_members').select('circle_id,user_id,display_name').in('circle_id', ids).order('joined_at');
-      fail(error);
-      return (data ?? []).map((m) => ({ circleId: m.circle_id, userId: m.user_id, name: m.display_name }));
+      const q = (cols: string) => sb.from('circle_members').select(cols).in('circle_id', ids).order('joined_at');
+      type Row = { circle_id: string; user_id: string; display_name: string; avatar?: string | null };
+      let res = hasAvatarColumn ? await q('circle_id,user_id,display_name,avatar') : await q('circle_id,user_id,display_name');
+      // Icons come from an update to circles-together.sql; work without them until it's run.
+      if (res.error && hasAvatarColumn && /avatar/.test(res.error.message)) {
+        hasAvatarColumn = false;
+        res = await q('circle_id,user_id,display_name');
+      }
+      fail(res.error);
+      return ((res.data ?? []) as unknown as Row[]).map((m) => ({ circleId: m.circle_id, userId: m.user_id, name: m.display_name, avatar: m.avatar ?? null }));
     },
     async stats(ids) {
       if (!ids.length) return {};
@@ -181,6 +192,10 @@ async function supabaseApi(): Promise<CirclesApi> {
     },
     async setName(name) {
       fail((await sb.rpc('set_display_name', { p_name: name })).error);
+    },
+    async setAvatar(icon) {
+      if (!hasAvatarColumn) return;
+      fail((await sb.rpc('set_avatar', { p_icon: icon })).error);
     },
     async cheer(id, to) {
       const { data, error } = await sb.rpc('send_cheer', { p_circle: id, p_to: to });
@@ -292,6 +307,7 @@ export const popcount = (n: number) => {
 export interface BoardRow {
   userId: string;
   name: string;
+  avatar?: string | null;
   isMe: boolean;
   hidden: boolean;
   minutes: number;
@@ -313,6 +329,7 @@ export function boardRows(members: Member[], stats: Record<string, MemberStats>,
       return {
         userId: m.userId,
         name: m.name,
+        avatar: m.avatar,
         isMe: m.userId === me,
         hidden: !s,
         minutes: current ? s.weekMinutes : 0,

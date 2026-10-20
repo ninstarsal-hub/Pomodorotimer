@@ -42,6 +42,7 @@ import { sessionTitle } from './lib/studySessions';
 import { isOnToday } from './lib/assignments';
 import { BackupNudge, InstallButton, UpdateToast } from './components/InstallUI';
 import { UndoToast } from './components/UndoToast';
+import { UnlockToast } from './components/Icons';
 import { WhatsNewCard } from './components/WhatsNew';
 import { PracticePanel } from './components/PracticePanel';
 import { PracticeRunner } from './components/PracticeRunner';
@@ -214,6 +215,7 @@ export default function App() {
           studySessionId,
           section,
           ...(away ? { away } : {}),
+          ...(t.group ? { together: true } : {}),
         },
       ]);
       return sessionId;
@@ -566,6 +568,13 @@ export default function App() {
       <MediaDock />
       <UpdateToast />
       <UndoToast />
+      <UnlockToast
+        quiet={timer.running && timer.mode === 'focus'}
+        onOpen={() => {
+          setPanel('stats');
+          window.setTimeout(() => document.getElementById('achievements')?.scrollIntoView({ behavior: 'smooth' }), 350);
+        }}
+      />
       <WhatsNewCard
         hidden={timer.running || !!panel || !!store.quiz || zen}
         onSeeAll={() => {

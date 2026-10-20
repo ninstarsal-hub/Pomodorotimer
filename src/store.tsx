@@ -37,6 +37,7 @@ export const DEFAULT_SETTINGS: Settings = {
   theme: 'dark',
   textScale: 1,
   shareCircleStats: true,
+  avatar: '',
 };
 
 export const sectionKey = (deckId: string, section: string) => `${deckId}\u0000${section}`;

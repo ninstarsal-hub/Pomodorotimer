@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { AchievementsCard } from './Icons';
 import { Target } from 'lucide-react';
 import { useStore, sectionKey } from '../store';
 import { dayKey, fmtMinutes } from '../lib/storage';
@@ -79,6 +80,8 @@ export function StatsPanel() {
       )}
 
       <WeeklyRecapCard />
+
+      <AchievementsCard />
 
       <InsightsCard />
 

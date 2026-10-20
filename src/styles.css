@@ -4933,3 +4933,136 @@ input[type='date'] {
     bottom: 88px;
   }
 }
+
+/* ---------- badges (profile icons) ---------- */
+.badge {
+  --ring: 0 0 0 1px hsl(var(--hue) 45% 55% / 0.35);
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: hsl(var(--hue) 90% 88%);
+  background: radial-gradient(circle at 32% 26%, hsl(var(--hue) 58% 46%), hsl(var(--hue) 52% 24%) 62%, hsl(calc(var(--hue) + 28) 48% 13%));
+  box-shadow:
+    inset 0 1px 0 hsl(var(--hue) 80% 78% / 0.35),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.35),
+    var(--ring);
+}
+.badge svg {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+.badge.tier-bronze {
+  --ring: 0 0 0 2px #b9825a;
+}
+.badge.tier-silver {
+  --ring: 0 0 0 2px #c9d2dc;
+}
+.badge.tier-gold {
+  --ring: 0 0 0 2px #e8c266, 0 0 12px rgba(232, 194, 102, 0.35);
+}
+.badge.is-locked {
+  filter: grayscale(1);
+  opacity: 0.32;
+}
+.badge .live-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  border: 2px solid var(--surface-solid);
+}
+.avatar-badge {
+  display: inline-flex;
+  flex: none;
+}
+.unlock-badges {
+  display: inline-flex;
+  gap: 4px;
+}
+.icon-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+  gap: 6px;
+}
+.icon-grid.earned {
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+.icon-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-height: 48px;
+  padding: 7px 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  transition: all 0.15s var(--ease);
+}
+.icon-tile:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  transform: translateY(-1px);
+}
+.icon-tile.is-active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, var(--surface-2));
+}
+.icon-tile.is-locked {
+  cursor: default;
+}
+.icon-lock {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  color: var(--muted);
+}
+.icon-name {
+  font-size: 10.5px;
+  color: var(--text-2);
+  text-align: center;
+  line-height: 1.2;
+}
+.icon-tile.is-locked .icon-name {
+  color: var(--muted);
+}
+.icon-progress {
+  width: 80%;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.icon-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.achievements .row {
+  align-items: flex-start;
+}
+.next-up li {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: start;
+  gap: 8px;
+}
+.next-up {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.unlock-toast {
+  z-index: 31 !important;
+  bottom: 132px !important;
+  cursor: pointer;
+}

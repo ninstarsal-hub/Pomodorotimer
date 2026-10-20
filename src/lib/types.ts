@@ -38,6 +38,8 @@ export interface Settings {
   textScale: number;
   /** Share weekly focus numbers with study circles. */
   shareCircleStats: boolean;
+  /** Profile icon id for circles (see lib/achievements); '' = your initial. */
+  avatar: string;
 }
 
 export interface BackgroundSetting {
@@ -78,6 +80,8 @@ export interface Session {
   section?: string;
   /** Time away from the Stillpoint tab: how often, how long, and whether it was studying (your call). */
   away?: { count: number; ms: number; kind?: 'study' | 'distracted' };
+  /** Finished as part of a circle's study-together block. */
+  together?: boolean;
 }
 
 /** A sitting of one or more focus blocks — e.g. a morning session and a night session on the same day. */

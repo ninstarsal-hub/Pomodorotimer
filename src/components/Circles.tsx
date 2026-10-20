@@ -4,6 +4,7 @@ import { blockNames, boardRows, circlesApi, joinTogether, lastWeekKey, refreshCi
 import { signIn, useSync } from '../lib/sync';
 import { fmtClock, fmtMinutes, usePersistentState } from '../lib/storage';
 import { useStore } from '../store';
+import { Avatar, IconPicker } from './Icons';
 
 const DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const inviteLink = (code: string) => `${location.origin}/#join=${code}`;
@@ -225,10 +226,9 @@ function Board({ circle, me }: { circle: Circle; me: string }) {
 function BoardItem({ r, top, cheers, cheered, busy, onCheer }: { r: BoardRow; top: boolean; cheers: number; cheered: boolean; busy: boolean; onCheer: () => void }) {
   return (
     <li className={`board-row ${r.isMe ? 'is-me' : ''}`}>
-      <span className="avatar" aria-hidden>
-        {r.name.slice(0, 1).toUpperCase()}
+      <Avatar icon={r.avatar} name={r.name}>
         {r.studyingNow && <i className="live-dot" title="In a focus block now" />}
-      </span>
+      </Avatar>
       <span className="board-main">
         <span className="board-name">
           {r.name}
@@ -443,6 +443,7 @@ function MySharing() {
   const current = data.members.find((m) => m.userId === sync.user?.id)?.name ?? '';
   const [name, setName] = useState(current);
   const [saved, setSaved] = useState(false);
+  const [picking, setPicking] = useState(false);
   useEffect(() => setName(current), [current]);
   if (!data.circles.length) return null;
   return (
@@ -462,6 +463,14 @@ function MySharing() {
           {saved ? 'Saved' : 'Save name'}
         </button>
       </div>
+      <div className="row">
+        <Avatar icon={settings.avatar} name={name || '?'} />
+        <span className="grow small muted">Your badge on the board — earn more by studying.</span>
+        <button className="btn small" onClick={() => setPicking((p) => !p)}>
+          {picking ? 'Done' : 'Change'}
+        </button>
+      </div>
+      {picking && <IconPicker value={settings.avatar} onPick={(id) => setSettings((s) => ({ ...s, avatar: id }))} />}
       <label className="toggle-row">
         <input type="checkbox" checked={settings.shareCircleStats} onChange={(e) => setSettings((s) => ({ ...s, shareCircleStats: e.target.checked }))} />
         <span>Share my weekly numbers with my circles</span>
@@ -595,9 +604,7 @@ function Together({ circle, me }: { circle: Circle; me: string }) {
         </div>
         <div className="together-people">
           {people.map((n, i) => (
-            <span key={block.joined[i]} className="avatar small" title={n}>
-              {n.slice(0, 1).toUpperCase()}
-            </span>
+            <Avatar key={block.joined[i]} small name={n} icon={data.members.find((m) => m.userId === block.joined[i] && m.circleId === circle.id)?.avatar} />
           ))}
           <span className="muted small">
             {people.length === 1 ? '1 person' : `${people.length} people`} in the room
@@ -719,6 +726,17 @@ export function CirclesAgent({ studyingUntil, group, onOpen }: { studyingUntil: 
     }, 1500);
     return () => window.clearTimeout(t);
   }, [uid, inCircle, sessions, studyingUntil, settings.shareCircleStats]);
+
+  // Keep your icon on the server in step with the one you picked.
+  const myRows = data.members.filter((m) => m.userId === uid);
+  const iconStale = myRows.some((m) => (m.avatar ?? '') !== settings.avatar);
+  useEffect(() => {
+    if (!uid || !iconStale) return;
+    void circlesApi()
+      .then((a) => a.setAvatar(settings.avatar))
+      .then(() => refreshCircles())
+      .catch(() => {});
+  }, [uid, iconStale, settings.avatar]);
 
   // Left a shared block early (paused, skipped, reset, or joined another)? Tell the room.
   const prevGroup = useRef(group);
