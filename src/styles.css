@@ -5107,3 +5107,64 @@ input[type='date'] {
   bottom: 132px !important;
   cursor: pointer;
 }
+
+/* ---------- badge tooltip ---------- */
+.icon-picker {
+  position: relative;
+}
+.tile-tip {
+  position: absolute;
+  z-index: 5;
+  transform: translateY(-100%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-solid);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  animation: tip-in 0.12s var(--ease);
+}
+.tile-tip.is-below {
+  transform: none;
+}
+.tile-tip p {
+  margin: 0;
+}
+.tile-tip-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tier-label {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.tier-label.tier-bronze {
+  color: #c8946a;
+}
+.tier-label.tier-silver {
+  color: #c9d2dc;
+}
+.tier-label.tier-gold {
+  color: #e8c266;
+}
+.tile-tip-bar {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.tile-tip-bar span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+  }
+}
