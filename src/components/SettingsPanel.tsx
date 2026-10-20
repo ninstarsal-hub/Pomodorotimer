@@ -5,6 +5,7 @@ import { ACCENTS, BACKGROUND_PRESETS } from '../lib/content';
 import { putBlob } from '../lib/storage';
 import { InstallSection } from './InstallUI';
 import { AccountSection } from './Account';
+import { WhatsNewSection } from './WhatsNew';
 import { Scene, SCENES } from './Scenes';
 import { exportBackup, lastBackupAt, readBackup, restoreBackup } from '../lib/backup';
 import type { Settings } from '../lib/types';
@@ -217,6 +218,8 @@ export function SettingsPanel() {
         </div>
         {backupMsg && <p className="small accent">{backupMsg}</p>}
       </section>
+
+      <WhatsNewSection />
     </div>
   );
 }

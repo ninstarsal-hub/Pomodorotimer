@@ -42,6 +42,7 @@ import { sessionTitle } from './lib/studySessions';
 import { isOnToday } from './lib/assignments';
 import { BackupNudge, InstallButton, UpdateToast } from './components/InstallUI';
 import { UndoToast } from './components/UndoToast';
+import { WhatsNewCard } from './components/WhatsNew';
 import { PracticePanel } from './components/PracticePanel';
 import { PracticeRunner } from './components/PracticeRunner';
 import { beats } from './lib/beats';
@@ -565,6 +566,13 @@ export default function App() {
       <MediaDock />
       <UpdateToast />
       <UndoToast />
+      <WhatsNewCard
+        hidden={timer.running || !!panel || !!store.quiz || zen}
+        onSeeAll={() => {
+          setPanel('settings');
+          window.setTimeout(() => document.getElementById('whats-new')?.scrollIntoView({ behavior: 'smooth' }), 350);
+        }}
+      />
       {!timer.running && <BackupNudge />}
 
       {checkpoint && (
