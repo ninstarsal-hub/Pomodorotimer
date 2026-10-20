@@ -32,6 +32,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 - Six presets plus a mixer. The sounds can play only during focus blocks if you want
 - Built-in lyric-free YouTube streams and Spotify playlists, and you can add your own YouTube, Spotify or SoundCloud links
 - **Listen mode:** hear your due review questions read aloud with a pause to answer in your head, made for walks. Optional *Knew it / Missed it* taps count as reviews
+- Recommended breaks that fit what you just did: a light reset after short blocks, a walk once you've been seated ~45 minutes, rest-then-walk after 70+ minute blocks, and a long break after ~2⅓ hours of focus (works when you mix block lengths). Breaks also offer to lengthen to about 1 minute per 5 of focus
 - Break music: lofi, chillhop and deep-house beats generated in the browser (free, offline, no account), which can start automatically on breaks and stop when focus resumes. Also includes upbeat break playlists and your own break links
 
 **Learn**

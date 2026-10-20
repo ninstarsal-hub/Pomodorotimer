@@ -11,6 +11,15 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    id: '2026-10-22',
+    title: 'Smarter breaks',
+    items: [
+      { title: 'Breaks fit your block', body: 'After a 90-minute block you get a proper rest-then-walk; after a short one, a light reset. Mixing 90, 50, 70 and 25 works too.' },
+      { title: 'Move when you’ve sat too long', body: 'Once you’ve been seated about 45 minutes, your break gets you walking.' },
+      { title: 'Long break when you need it', body: 'After about 2⅓ hours of focus, the next break becomes a long one — however you split the blocks.' },
+    ],
+  },
+  {
     id: '2026-10-21',
     title: 'Badges',
     items: [

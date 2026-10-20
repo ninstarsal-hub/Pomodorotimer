@@ -33,6 +33,9 @@ interface Props {
   /** Open the always-on-top mini timer (only where the browser supports it). */
   onMini?: () => void;
   miniOpen?: boolean;
+  /** What the break should fit: the block just finished, time seated, focus since the last long break, and this break's length. */
+  breakInfo: { lastBlockMin: number; seatedMin: number; sinceLongMin: number; breakMin: number };
+  onExtendBreak: (min: number) => void;
   children?: React.ReactNode;
 }
 
@@ -157,7 +160,16 @@ export function TimerView(p: Props) {
           )}
         </div>
       ) : (
-        <BreakCard key={`${p.mode}-${p.cycle}`} long={p.mode === 'long'} cycle={p.cycle} longEvery={p.longEvery} intention={p.intention} onOpenSound={p.onOpenSound} />
+        <BreakCard
+          key={`${p.mode}-${p.cycle}`}
+          long={p.mode === 'long'}
+          cycle={p.cycle}
+          longEvery={p.longEvery}
+          intention={p.intention}
+          onOpenSound={p.onOpenSound}
+          info={p.breakInfo}
+          onExtend={p.onExtendBreak}
+        />
       )}
     </section>
   );

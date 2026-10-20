@@ -206,4 +206,10 @@ export interface TimerState {
   focusMs?: number;
   /** The circle's shared block you're in, if any. */
   group?: { blockId: string; circleId: string; endsAt: number };
+  /** Length of this break when it was lengthened to fit a long block. */
+  breakMs?: number;
+  /** For recommended breaks: the block just finished, focus minutes since you last moved, and since the last long break. */
+  lastBlockMin?: number;
+  seatedMin?: number;
+  sinceLongMin?: number;
 }

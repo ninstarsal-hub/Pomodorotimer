@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { BREAK_IDEAS, BREAK_PLAN, STRATEGIES } from '../lib/content';
+import { BREAK_IDEAS, LONG_AFTER_MIN, LONG_BLOCK_MIN, MOVE_AFTER_MIN, STRATEGIES } from '../lib/content';
 
 export function LearnPanel() {
   const [open, setOpen] = useState<string | null>(STRATEGIES[0].id);
@@ -33,16 +33,29 @@ export function LearnPanel() {
       <div className="card">
         <div className="eyebrow">Break ideas</div>
         <p className="muted small">What to do with your breaks so you come back sharper. One is suggested each break — tap “Another idea” to shuffle.</p>
-        <div className="eyebrow" style={{ marginTop: 12 }}>Recommended order</div>
+        <div className="eyebrow" style={{ marginTop: 12 }}>How breaks are recommended</div>
+        <p className="muted small">Your break adapts to what you just did — so mixing 90, 50, 70 and 25-minute blocks works.</p>
         <ol className="break-plan-list">
-          {[...BREAK_PLAN.short.map((s, i) => ({ ...s, when: `Break ${i + 1}` })), { ...BREAK_PLAN.long, when: 'Long break' }].map((s) => (
-            <li key={s.when}>
-              <strong>
-                {s.when}: {s.label}
-              </strong>
-              <span>{s.reason}</span>
-            </li>
-          ))}
+          <li>
+            <strong>Short block, little sitting: a light reset</strong>
+            <span>Doodle, rest your eyes or sit quietly — no need to get up yet. Quiet, low-effort breaks right after learning help it stick (Dewar et al., 2012).</span>
+          </li>
+          <li>
+            <strong>Seated ~{MOVE_AFTER_MIN}+ minutes: walk</strong>
+            <span>Short, regular walks lift energy and mood and ease fatigue more than staying seated (Bergouignan et al., 2016); 5 minutes every half hour worked best in one lab study (Duran et al., 2023).</span>
+          </li>
+          <li>
+            <strong>Block of {LONG_BLOCK_MIN}+ minutes: rest, then walk</strong>
+            <span>About 90 minutes of hard thinking leaves real mental fatigue (Marcora et al., 2009). Restore rather than rev up — quiet rest, then an easy walk, ideally outside (Berman et al., 2008).</span>
+          </li>
+          <li>
+            <strong>~{Math.round((LONG_AFTER_MIN / 60) * 10) / 10} hours of focus: long break</strong>
+            <span>However you split it, after about {LONG_AFTER_MIN} minutes of focus the next break becomes a long one — move, eat, refill or nap.</span>
+          </li>
+          <li>
+            <strong>Break length grows with the block</strong>
+            <span>About 1 minute of break per 5 of focus (25→5, 50→10, 70→15, 90→20). Longer breaks bring bigger performance gains after demanding work (Albulescu et al., 2022).</span>
+          </li>
         </ol>
         <div className="eyebrow" style={{ marginTop: 12 }}>All ideas</div>
         <ul className="break-list">

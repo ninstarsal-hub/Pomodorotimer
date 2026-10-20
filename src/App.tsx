@@ -26,7 +26,7 @@ import { ExamWidget } from './components/ExamWidget';
 import { Welcome } from './components/Welcome';
 import { InAppBanner } from './components/InAppBanner';
 import { SyncChoice } from './components/Account';
-import { ACCENTS } from './lib/content';
+import { ACCENTS, LONG_AFTER_MIN, breakKind } from './lib/content';
 import { ListenReview } from './components/ListenReview';
 import { WeeklyRecapPrompt } from './components/WeeklyRecap';
 import { ExamWrapUp } from './components/ExamWrapUp';
@@ -141,7 +141,7 @@ export default function App() {
   }, [timer.running]);
 
   const remaining = timer.running && timer.endAt ? Math.max(0, timer.endAt - now) : timer.remaining;
-  const total = timer.mode === 'focus' && timer.focusMs ? timer.focusMs : durations[timer.mode];
+  const total = timer.mode === 'focus' ? (timer.focusMs ?? durations.focus) : (timer.breakMs ?? durations[timer.mode]);
   const elapsed = total - remaining;
 
   // Keep an untouched timer in sync with duration settings.
@@ -173,6 +173,7 @@ export default function App() {
       setTimer((t) => ({
         ...t,
         focusMs: undefined,
+        breakMs: undefined,
         group: undefined,
         ...patch,
         mode,
@@ -233,20 +234,34 @@ export default function App() {
         if (sessionId) {
           if (activeTask && !skipped) setTasks((ts) => ts.map((x) => (x.id === activeTask.id ? { ...x, pomos: x.pomos + 1 } : x)));
         }
-        const cycle = skipped ? t.cycle : t.cycle + 1;
+        // How long you've sat and focused, so the break can fit what you actually did (blocks can be mixed).
+        const done = Math.max(0, minutes);
+        const seatedMin = (t.seatedMin ?? 0) + done;
+        const sinceLongMin = (t.sinceLongMin ?? 0) + done;
+        let cycle = skipped ? t.cycle : t.cycle + 1;
+        // After ~2⅓ hours of focus, the next break is a long one even if the set isn't finished (the set ends here).
+        const earlyLong = settings.breakPlan && !skipped && sinceLongMin >= LONG_AFTER_MIN && cycle % settings.longEvery !== 0;
+        if (earlyLong) cycle = Math.ceil(cycle / settings.longEvery) * settings.longEvery;
         const next: Mode = !skipped && cycle % settings.longEvery === 0 ? 'long' : 'short';
         if (!skipped) {
           chime(settings.chimeVolume);
           notify('Focus block complete', `Nice work. ${MODE_LABEL[next]} — ${next === 'long' ? settings.longMin : settings.shortMin} min.`, settings.notifications);
           if (settings.reflectAfterFocus && sessionId) setReflectionId(sessionId);
         }
-        goTo(next, settings.autoStartBreaks && !skipped, { cycle, intention: t.intention, recall: '', awayCount: 0, awayMs: 0, awaySince: null });
+        goTo(next, settings.autoStartBreaks && !skipped, { cycle, intention: t.intention, recall: '', awayCount: 0, awayMs: 0, awaySince: null, lastBlockMin: done, seatedMin, sinceLongMin });
       } else {
         if (!skipped) {
           chime(settings.chimeVolume);
           notify('Break is over', 'Ready for the next focus block?', settings.notifications);
         }
-        goTo('focus', settings.autoStartFocus && !skipped, { intention: '', recall: '' });
+        // A finished break that got you moving resets the sitting clock; a long break resets the focus count.
+        const moved = !skipped && (t.mode === 'long' || breakKind({ long: false, lastBlockMin: t.lastBlockMin ?? 0, seatedMin: t.seatedMin ?? 0 }) !== 'light');
+        goTo('focus', settings.autoStartFocus && !skipped, {
+          intention: '',
+          recall: '',
+          ...(moved ? { seatedMin: 0 } : {}),
+          ...(t.mode === 'long' ? { sinceLongMin: 0, seatedMin: 0 } : {}),
+        });
       }
       setCheckpoint(false);
     },
@@ -280,7 +295,11 @@ export default function App() {
     const firstStart = !timer.started;
     // A focus block after a long gap (new day, or evening after a morning session) starts a fresh session and set.
     const fresh = firstStart && timer.mode === 'focus' && store.ensureStudySession().isNew;
-    setTimer((t) => ({ ...t, running: true, started: true, endAt: Date.now() + t.remaining, ...(fresh ? { cycle: 0 } : {}) }));
+    // Been away a while since your last block? Then you've already moved / rested.
+    const lastAt = sessions.length ? sessions[sessions.length - 1].at : 0;
+    const gap = Date.now() - lastAt;
+    const counters = firstStart && timer.mode === 'focus' ? { ...(gap > 20 * 60_000 ? { seatedMin: 0 } : {}), ...(gap > 60 * 60_000 ? { sinceLongMin: 0 } : {}) } : {};
+    setTimer((t) => ({ ...t, ...counters, running: true, started: true, endAt: Date.now() + t.remaining, ...(fresh ? { cycle: 0, seatedMin: 0, sinceLongMin: 0 } : {}) }));
     if (firstStart && timer.mode === 'focus' && settings.warmupQuiz) {
       // Warm up on earlier sections that are due for review — never on material you haven't studied yet.
       const due = earlierCards.filter((c) => isDue(reviews[c.id]));
@@ -288,7 +307,7 @@ export default function App() {
       if (items.length) store.setQuiz({ items, title: 'Warm-up', subtitle: 'Quick review of sections you’ve already studied, before you dive in.' });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [settings.notifications, settings.warmupQuiz, timer.started, timer.mode, earlierCards, reviews, setTimer, store.liveStudy?.id]);
+  }, [settings.notifications, settings.warmupQuiz, timer.started, timer.mode, earlierCards, reviews, setTimer, store.liveStudy?.id, sessions]);
 
   /**
    * Leaving a shared block early saves the time you spent in it. What's left becomes its own block,
@@ -363,6 +382,19 @@ export default function App() {
 
   const switchMode = useCallback((mode: Mode) => goTo(mode, false), [goTo]);
 
+  /** Lengthen the current break to `min` minutes (e.g. after a longer block than your break setting fits). */
+  const extendBreak = useCallback(
+    (min: number) =>
+      setTimer((t) => {
+        if (t.mode === 'focus') return t;
+        const cur = t.breakMs ?? durations[t.mode];
+        const add = min * 60_000 - cur;
+        if (add <= 0) return t;
+        return { ...t, breakMs: min * 60_000, remaining: t.remaining + add, endAt: t.endAt ? t.endAt + add : null };
+      }),
+    [durations, setTimer],
+  );
+
   // Focus sounds follow the timer, if enabled.
   const syncRef = useRef(settings.syncSoundWithTimer);
   syncRef.current = settings.syncSoundWithTimer;
@@ -411,7 +443,7 @@ export default function App() {
   useEffect(() => {
     if (timer.running || store.liveStudy) return;
     // Only an untouched timer — never one you've paused mid-block or mid-break.
-    if (!timer.started && (timer.cycle !== 0 || timer.mode !== 'focus')) goTo('focus', false, { cycle: 0, intention: '', recall: '' });
+    if (!timer.started && (timer.cycle !== 0 || timer.mode !== 'focus')) goTo('focus', false, { cycle: 0, intention: '', recall: '', seatedMin: 0, sinceLongMin: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [store.liveStudy?.id, timer.running]);
 
@@ -521,8 +553,15 @@ export default function App() {
           openTasks={openTasks}
           onOpenToday={() => setPanel('today')}
           onOpenSound={() => setPanel('sound')}
-          onResetSet={() => goTo('focus', false, { cycle: 0, intention: '', recall: '' })}
+          onResetSet={() => goTo('focus', false, { cycle: 0, intention: '', recall: '', seatedMin: 0, sinceLongMin: 0 })}
           onMini={miniTimerSupported ? () => void openMini() : undefined}
+          breakInfo={{
+            lastBlockMin: timer.lastBlockMin ?? settings.focusMin,
+            seatedMin: timer.seatedMin ?? timer.lastBlockMin ?? settings.focusMin,
+            sinceLongMin: timer.sinceLongMin ?? 0,
+            breakMin: Math.round(total / 60_000),
+          }}
+          onExtendBreak={extendBreak}
           miniOpen={!!mini}
           otherApps={!!timer.otherApps}
           onOtherApps={settings.awayTracking ? (v) => setTimer((t) => ({ ...t, otherApps: v })) : undefined}
@@ -660,7 +699,7 @@ export default function App() {
           ending={review.ending}
           onClose={() => setReview(null)}
           onDone={() => {
-            if (review.ending) goTo('focus', false, { cycle: 0, intention: '', recall: '' });
+            if (review.ending) goTo('focus', false, { cycle: 0, intention: '', recall: '', seatedMin: 0, sinceLongMin: 0 });
             setReview(null);
           }}
         />

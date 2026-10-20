@@ -1,6 +1,6 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, Eraser, Headphones, Music, PenLine, RefreshCw, Square, Wind } from 'lucide-react';
-import { BREAK_PLAN, ideaByTitle, pickBreakIdea, planStep, type BreakIdea, type BreakTool } from '../lib/content';
+import { ideaByTitle, pickBreakIdea, planFor, suggestedBreakMin, type BreakIdea, type BreakTool } from '../lib/content';
 import { BEAT_STYLES, beats, useBeatStyle } from '../lib/beats';
 import { useStore } from '../store';
 
@@ -11,14 +11,20 @@ interface Props {
   longEvery: number;
   intention: string;
   onOpenSound: () => void;
+  info: { lastBlockMin: number; seatedMin: number; sinceLongMin: number; breakMin: number };
+  onExtend: (min: number) => void;
 }
 
 /** Render with a `key` per break so each break gets a fresh suggestion. */
-export function BreakCard({ long, cycle, longEvery, intention, onOpenSound }: Props) {
+export function BreakCard({ long, cycle, longEvery, intention, onOpenSound, info, onExtend }: Props) {
   const { settings, setListenOpen, unlocked } = useStore();
   const unlockedCount = unlocked.length;
-  const plan = settings.breakPlan ? planStep(long, cycle, longEvery) : null;
-  const recommended = plan ? ideaByTitle(plan.step.idea) : null;
+  // The recommended break fits what you just did: block length, time seated, and focus since the last long break.
+  const index = Math.max((cycle % longEvery || longEvery) - 1, 0);
+  const plan = settings.breakPlan ? planFor({ long, index, ...info }) : null;
+  const recommended = plan ? ideaByTitle(plan.idea) : null;
+  const suggestMin = plan ? suggestedBreakMin(plan.kind, info.lastBlockMin) : 0;
+  const [extended, setExtended] = useState(false);
   const [idea, setIdea] = useState<BreakIdea>(() => recommended ?? pickBreakIdea(long));
   const [tool, setTool] = useState<BreakTool | null>(idea.tool ?? null);
   const onPlan = !!recommended && idea === recommended;
@@ -41,21 +47,49 @@ export function BreakCard({ long, cycle, longEvery, intention, onOpenSound }: Pr
   return (
     <div className="break-card fade-zen">
       <div className="row between break-head">
-        <div className="eyebrow">{plan ? (onPlan ? `${long ? 'Long break' : `Break ${plan.index + 1}`} · recommended` : 'Something different') : `${long ? 'Long break' : 'Break'} suggestion`}</div>
+        <div className="eyebrow">{plan ? (onPlan ? `${long ? 'Long break' : 'Break'} · recommended for you` : 'Something different') : `${long ? 'Long break' : 'Break'} suggestion`}</div>
         <button className="link-btn small" onClick={another} title="Show a different idea">
           <RefreshCw size={12} /> Another idea
         </button>
       </div>
       <h3>{idea.title}</h3>
       <p>{idea.body}</p>
-      {onPlan && plan && <p className="break-reason">{plan.step.reason}</p>}
+      {onPlan && plan && <p className="break-reason">{plan.reason}</p>}
       {idea.why && <p className="break-why">{idea.why}</p>}
       {/walk|outside|green/i.test(idea.title) && unlockedCount > 0 && (
         <button className="link-btn small listen-link" onClick={() => setListenOpen(true)}>
           <Headphones size={12} /> Listen to your reviews on the walk
         </button>
       )}
-      {plan && <PlanStrip long={long} index={plan.index} longEvery={longEvery} offPlan={!onPlan} onBack={backToPlan} />}
+      {plan && (
+        <div className="break-context">
+          <span className="chip-static">{info.lastBlockMin}-min block</span>
+          {!long && <span className="chip-static">seated {info.seatedMin} min</span>}
+          <span className="chip-static">{info.breakMin}-min break</span>
+          {!onPlan && (
+            <button className="link-btn small" onClick={backToPlan}>
+              Back to recommended
+            </button>
+          )}
+        </div>
+      )}
+      {plan && info.breakMin < suggestMin - 2 && (
+        <div className="break-extend small">
+          <span>
+            After a {info.lastBlockMin}-minute block, aim for about <strong>{suggestMin} minutes</strong> — longer breaks after longer work bring a bigger boost.
+          </span>
+          <button
+            className="btn small"
+            disabled={extended}
+            onClick={() => {
+              onExtend(suggestMin);
+              setExtended(true);
+            }}
+          >
+            Make it {suggestMin} min
+          </button>
+        </div>
+      )}
 
       <div className="break-tools" role="group" aria-label="Break tools">
         <button className={`chip ${tool === 'doodle' ? 'is-active' : ''}`} onClick={() => toggleTool('doodle')}>
@@ -77,27 +111,6 @@ export function BreakCard({ long, cycle, longEvery, intention, onOpenSound }: Pr
         <p className="muted small">
           Last block’s intention: <em>“{intention}”</em> — did you get there?
         </p>
-      )}
-    </div>
-  );
-}
-
-/** "Doodle → Walk → Rest → Recharge" with this break highlighted. */
-function PlanStrip({ long, index, longEvery, offPlan, onBack }: { long: boolean; index: number; longEvery: number; offPlan: boolean; onBack: () => void }) {
-  const shorts = Array.from({ length: Math.max(longEvery - 1, 0) }, (_, i) => BREAK_PLAN.short[i % BREAK_PLAN.short.length]);
-  const steps = [...shorts.map((s, i) => ({ ...s, current: !long && i === index })), { ...BREAK_PLAN.long, current: long }];
-  return (
-    <div className="plan-strip" aria-label="Recommended break plan">
-      {steps.map((s, i) => (
-        <Fragment key={i}>
-          {i > 0 && <span className="plan-arrow">→</span>}
-          <span className={`plan-step ${s.current ? 'is-current' : ''} ${i < (long ? steps.length - 1 : index) ? 'is-done' : ''}`}>{s.label}</span>
-        </Fragment>
-      ))}
-      {offPlan && (
-        <button className="link-btn small" onClick={onBack}>
-          Back to recommended
-        </button>
       )}
     </div>
   );

@@ -113,35 +113,105 @@ export const BREAK_IDEAS: BreakIdea[] = [
   { title: 'Talk to someone', body: 'Have a quick chat with a friend, roommate or family member — in person or a call, not a feed.', why: 'Short social micro-breaks are linked to more energy at work (Fritz et al., 2011).' },
   { title: 'Tense & release', body: 'Squeeze your fists, shoulders, then face for 5 seconds each, and let go. Notice the difference.', why: 'Progressive muscle relaxation reliably lowers stress and anxiety.' },
   { title: 'Walk outside', body: 'Take a 5-minute walk — outside if you can, even just around the block or down the hall and back.', why: 'Walking boosted creative thinking by about 60% compared with sitting (Oppezzo & Schwartz, 2014), and being outdoors adds the attention-restoring effect of nature.' },
+  { title: 'Reset: rest, then walk', body: 'Close your eyes for 2 minutes and let your mind wander. Then walk for 5–10 minutes — outside if you can — with your phone in your pocket. Drink some water when you’re back.', why: 'About 90 minutes of demanding thinking leaves measurable mental fatigue (Marcora et al., 2009). Quiet rest right after learning helps memories settle (Dewar et al., 2012), and a walk — best among trees — restores attention (Berman et al., 2008).' },
   { title: 'Recharge', body: 'Get outside or move around, then eat a real snack and drink some water. Running on empty? Take a 10–20 minute nap instead.', why: 'Longer breaks work best when they actually restore energy — movement, food and daylight — rather than more screen time.', long: true },
   { title: 'Power nap', body: 'Lie down for 10–20 minutes with an alarm set. Keep it short so you don’t wake up groggy.', why: 'A 10-minute nap improved alertness and performance right away, without the grogginess of longer naps (Brooks & Lack, 2006).', long: true },
   { title: 'Eat something real', body: 'Have a proper snack — fruit, nuts, yogurt, a sandwich. Step away from the desk to eat it.', why: 'Long sessions on an empty stomach drain focus; eating away from your desk also gives you real mental distance.', long: true },
 ];
 
+/*
+ * Recommended breaks adapt to what you actually just did, so mixing block lengths (90 → 50 → 70 → 25) works:
+ *  - light:    not much sitting yet → stay put, a light screen-free reset (doodle, quiet rest, far-away eyes)
+ *  - move:     ~45+ minutes seated since you last moved → walk (short, regular walks beat sitting it out)
+ *  - reset:    the block was 70+ minutes → quiet rest first, then an easy walk (fatigue is real; restore, don't rev up)
+ *  - recharge: a long break, or ~2⅓ hours of focus since the last one → move, eat, refill, or nap
+ * Breaks also scale with the block: roughly 1 minute of break per 5 of focus.
+ */
+
+export type BreakKind = 'light' | 'move' | 'reset' | 'recharge';
+
+/** Minutes seated (focus since your last movement break) after which a break should get you moving. */
+export const MOVE_AFTER_MIN = 45;
+/** Focus minutes since the last long break after which the next break is a long one. */
+export const LONG_AFTER_MIN = 140;
+/** Blocks this long count as long, draining sessions. */
+export const LONG_BLOCK_MIN = 70;
+
+export interface BreakContext {
+  long: boolean;
+  /** Length of the focus block just finished. */
+  lastBlockMin: number;
+  /** Focus minutes since you last had a movement break (including the block just finished). */
+  seatedMin: number;
+  /** Focus minutes since the last long break. */
+  sinceLongMin: number;
+  /** Which break of the set this is (0 = first). */
+  index: number;
+}
+
+export function breakKind(c: Pick<BreakContext, 'long' | 'lastBlockMin' | 'seatedMin'>): BreakKind {
+  if (c.long) return 'recharge';
+  if (c.lastBlockMin >= LONG_BLOCK_MIN) return 'reset';
+  if (c.seatedMin >= MOVE_AFTER_MIN) return 'move';
+  return 'light';
+}
+
+/** Suggested break length for the block just finished: about 1 minute per 5 of focus; long breaks at least 20. */
+export function suggestedBreakMin(kind: BreakKind, lastBlockMin: number) {
+  const base = lastBlockMin <= 20 ? 3 : lastBlockMin <= 35 ? 5 : lastBlockMin <= 55 ? 10 : lastBlockMin <= 75 ? 15 : 20;
+  return kind === 'recharge' ? Math.max(20, base) : base;
+}
+
+/** Light breaks rotate so they don't repeat back to back. */
+const LIGHT = ['Doodle', 'Rest your mind', 'Look far away'];
+
 export interface PlanStep {
-  /** Short name shown in the plan strip. */
+  kind: BreakKind;
+  /** Short name for the step. */
   label: string;
   idea: string;
-  /** Why this break comes at this point in the set. */
+  /** Why this break, right now — with your numbers in it. */
   reason: string;
 }
 
-/** The recommended order for breaks in a set: start light, then move, then calm down, then truly recharge. */
-export const BREAK_PLAN: { short: PlanStep[]; long: PlanStep } = {
-  short: [
-    { label: 'Doodle', idea: 'Doodle', reason: 'After one block your brain just needs a light, creative reset — no need to get up yet.' },
-    { label: 'Walk', idea: 'Walk outside', reason: 'You’ve been sitting for two blocks now. Get your body moving and some fresh air.' },
-    { label: 'Rest', idea: 'Rest your mind', reason: 'Fatigue builds by the third block — calm down instead of revving up, and give your eyes a rest.' },
-  ],
-  long: { label: 'Recharge', idea: 'Recharge', reason: 'You finished a full set. Step away properly: move, eat, refill — this is where you recover for the next round.' },
-};
-
-/** Which recommended break this is. `cycle` = focus blocks finished so far. */
-export function planStep(long: boolean, cycle: number, longEvery: number) {
-  if (long) return { step: BREAK_PLAN.long, index: Math.max(longEvery - 1, 0) };
-  const pos = Math.max((cycle % longEvery) - 1, 0); // 1st, 2nd, 3rd break of the set
-  const step = BREAK_PLAN.short[pos % BREAK_PLAN.short.length];
-  return { step, index: pos };
+export function planFor(c: BreakContext): PlanStep {
+  const kind = breakKind(c);
+  const h = (m: number) => (m >= 60 ? `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ''}` : `${m} min`);
+  switch (kind) {
+    case 'recharge':
+      return {
+        kind,
+        label: 'Recharge',
+        idea: 'Recharge',
+        reason:
+          c.sinceLongMin >= LONG_AFTER_MIN
+            ? `That’s ${h(c.sinceLongMin)} of focus since your last long break — about as long as attention holds up without real rest. Step away properly: move, eat, refill. Running on empty? A 10–20 minute nap works too.`
+            : 'You finished a full set. Step away properly: move, eat, refill — this is where you recover for the next round.',
+      };
+    case 'reset':
+      return {
+        kind,
+        label: 'Reset',
+        idea: 'Reset: rest, then walk',
+        reason: `That was a ${h(c.lastBlockMin)} block. Long stretches of hard thinking build real fatigue, so restore rather than rev up — quiet rest first, then an easy walk. Keep your phone away for this one.`,
+      };
+    case 'move':
+      return {
+        kind,
+        label: 'Walk',
+        idea: 'Walk outside',
+        reason: `You’ve been sitting for ${h(c.seatedMin)}. Get up and walk for at least 5 minutes — short, regular walks lift energy and mood and ease fatigue far better than sitting it out (Bergouignan et al., 2016; Duran et al., 2023).`,
+      };
+    default: {
+      const idea = LIGHT[c.index % LIGHT.length];
+      return {
+        kind,
+        label: idea === 'Doodle' ? 'Doodle' : idea === 'Rest your mind' ? 'Rest' : 'Eyes',
+        idea,
+        reason: `Only ${h(c.seatedMin)} seated so far, so no need to get up yet — a light, screen-free reset is enough. Quiet, low-effort breaks right after learning also help it stick.`,
+      };
+    }
+  }
 }
 
 export const ideaByTitle = (title: string) => BREAK_IDEAS.find((i) => i.title === title)!;
