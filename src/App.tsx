@@ -29,6 +29,7 @@ import { SyncChoice } from './components/Account';
 import { ACCENTS } from './lib/content';
 import { ListenReview } from './components/ListenReview';
 import { WeeklyRecapPrompt } from './components/WeeklyRecap';
+import { ExamWrapUp } from './components/ExamWrapUp';
 import { SharedImport } from './components/ShareNotes';
 import { CirclesAgent, CirclesPanel, StudyingNowChip } from './components/Circles';
 import { circlesAvailable, type GroupRef } from './lib/circles';
@@ -40,6 +41,7 @@ import { SessionPill } from './components/SessionPill';
 import { sessionTitle } from './lib/studySessions';
 import { isOnToday } from './lib/assignments';
 import { BackupNudge, InstallButton, UpdateToast } from './components/InstallUI';
+import { UndoToast } from './components/UndoToast';
 import { PracticePanel } from './components/PracticePanel';
 import { PracticeRunner } from './components/PracticeRunner';
 import { beats } from './lib/beats';
@@ -522,7 +524,7 @@ export default function App() {
           otherApps={!!timer.otherApps}
           onOtherApps={settings.awayTracking ? (v) => setTimer((t) => ({ ...t, otherApps: v })) : undefined}
         >
-          {!timer.running && <Agenda onOpenPlan={() => setPanel('plan')} />}
+          {!timer.running && <Agenda onOpenPlan={() => setPanel('plan')} onOpenToday={() => setPanel('today')} />}
         </TimerView>
       </main>
 
@@ -539,7 +541,7 @@ export default function App() {
         <GoalStat minutes={todayMinutes} goal={settings.dailyGoalMin} onClick={() => setPanel('stats')} />
       </footer>
 
-      {circlesAvailable && <CirclesAgent studyingUntil={timer.mode === 'focus' && timer.running ? timer.endAt : null} group={timer.group} />}
+      {circlesAvailable && <CirclesAgent studyingUntil={timer.mode === 'focus' && timer.running ? timer.endAt : null} group={timer.group} onOpen={() => setPanel('circles')} />}
       {mini &&
         createPortal(
           <MiniTimer
@@ -562,6 +564,7 @@ export default function App() {
       <SyncChoice />
       <MediaDock />
       <UpdateToast />
+      <UndoToast />
       {!timer.running && <BackupNudge />}
 
       {checkpoint && (
@@ -631,7 +634,7 @@ export default function App() {
       ) : (
         <>
           {panel !== 'circles' && <Welcome onOpen={setPanel} />}
-          {!timer.running && !store.quiz && !reflectionId && <WeeklyRecapPrompt onOpenPlan={() => setPanel('plan')} />}
+          {!timer.running && !store.quiz && !reflectionId && <ExamWrapUp fallback={<WeeklyRecapPrompt onOpenPlan={() => setPanel('plan')} />} />}
         </>
       )}
       {review && (

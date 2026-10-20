@@ -121,6 +121,20 @@ export interface Exam {
   deckId: string;
   /** Sections the exam covers ([] = all sections of the notes). */
   sections: string[];
+  /** How it went, logged after the exam. */
+  result?: ExamResult;
+  /** Chose not to log how it went. */
+  wrapSkipped?: boolean;
+}
+
+export interface ExamResult {
+  /** 1 = rough … 5 = great */
+  feeling: 1 | 2 | 3 | 4 | 5;
+  /** Sections that felt shaky — worth reviewing for the final. */
+  shaky: string[];
+  /** Grade or score, as typed ("84%", "B+"). */
+  score?: string;
+  at: number;
 }
 
 export interface Card {

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { ImagePlus, Pencil, Trash2, X } from 'lucide-react';
 import { useStore } from '../store';
+import { insertAt, offerUndo } from '../lib/undo';
 import type { Deck, Diagram } from '../lib/types';
 import { deckSections, sectionLabel } from '../lib/quiz';
 import { deleteBlob, getBlob, putBlob, uid } from '../lib/storage';
@@ -86,10 +87,16 @@ export function DiagramList({ deck }: { deck: Deck }) {
   };
 
   const remove = (d: Diagram) => {
-    if (!confirm(`Delete the diagram “${d.title}” and its questions?`)) return;
+    const index = diagrams.findIndex((x) => x.id === d.id);
     setDiagrams((ds) => ds.filter((x) => x.id !== d.id));
-    void deleteBlob(diagramBlobKey(d.id));
-    urls.delete(d.id);
+    offerUndo(
+      `Deleted “${d.title}”`,
+      () => setDiagrams((ds) => insertAt(ds, d, index)),
+      () => {
+        void deleteBlob(diagramBlobKey(d.id));
+        urls.delete(d.id);
+      },
+    );
   };
 
   return (

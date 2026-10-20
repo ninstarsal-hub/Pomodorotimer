@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pencil, Plus, Repeat, Shuffle, Trash2 } from 'lucide-react';
 import { useStore } from '../store';
+import { insertAt, offerUndo } from '../lib/undo';
 import { uid } from '../lib/storage';
 import { deckSections, sectionLabel } from '../lib/quiz';
 import { lastResult, parseRange, pickMixed, status, type Problem, type ProblemSet } from '../lib/problems';
@@ -138,7 +139,7 @@ export function PracticePanel() {
 }
 
 function SetCard({ set }: { set: ProblemSet }) {
-  const { setProblemSets, setPracticeRun, decks } = useStore();
+  const { problemSets, setProblemSets, setPracticeRun, decks } = useStore();
   const [editing, setEditing] = useState<string | null>(null);
   const [more, setMore] = useState('');
   const now = Date.now();
@@ -168,7 +169,11 @@ function SetCard({ set }: { set: ProblemSet }) {
             {tried.length > 0 && ` · ${Math.round((firstTry / tried.length) * 100)}% right first try`}
           </div>
         </div>
-        <button className="icon-btn small" onClick={() => confirm(`Delete “${set.title}” and its history?`) && setProblemSets((ss) => ss.filter((x) => x.id !== set.id))} aria-label="Delete set">
+        <button className="icon-btn small" onClick={() => {
+            const index = problemSets.findIndex((x) => x.id === set.id);
+            setProblemSets((ss) => ss.filter((x) => x.id !== set.id));
+            offerUndo(`Deleted “${set.title}”`, () => setProblemSets((ss) => insertAt(ss, set, index)));
+          }} aria-label="Delete set">
           <Trash2 size={14} />
         </button>
       </div>

@@ -31,6 +31,15 @@ create table if not exists public.member_stats (
   updated_at timestamptz not null default now()
 );
 
+-- Last week's numbers, so the Monday wrap-up still works after the new week starts.
+alter table public.member_stats add column if not exists prev_week_start date;
+alter table public.member_stats add column if not exists prev_week_minutes int not null default 0;
+alter table public.member_stats add column if not exists prev_week_days int not null default 0;
+do $$ begin
+  alter table public.member_stats add constraint member_stats_prev_week_chk
+    check (prev_week_minutes between 0 and 10080 and prev_week_days between 0 and 127);
+exception when duplicate_object then null; end $$;
+
 create table if not exists public.cheers (
   id bigint generated always as identity primary key,
   circle_id uuid not null references public.circles on delete cascade,

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ArrowRight, CalendarClock, Check, Plus, Target, Trash2 } from 'lucide-react';
 import { fmtDue, dueInfo, isOnToday, upcoming } from '../lib/assignments';
 import { useStore } from '../store';
+import { insertAt, offerUndo } from '../lib/undo';
 import { uid } from '../lib/storage';
 import type { Task } from '../lib/types';
 
@@ -35,8 +36,16 @@ export function TodayPanel() {
   const update = (id: string, patch: Partial<Task>) =>
     setTasks((ts) => ts.map((t) => (t.id === id ? { ...t, ...patch, ...('done' in patch ? { doneDay: patch.done ? today : undefined } : {}) } : t)));
   const remove = (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const index = tasks.indexOf(task);
+    const wasActive = activeTaskId === id;
     setTasks((ts) => ts.filter((t) => t.id !== id));
-    if (activeTaskId === id) setActiveTaskId(null);
+    if (wasActive) setActiveTaskId(null);
+    offerUndo(`Deleted “${task.title}”`, () => {
+      setTasks((ts) => insertAt(ts, task, index));
+      if (wasActive) setActiveTaskId(id);
+    });
   };
 
   const openDistractions = distractions.filter((d) => !d.done);

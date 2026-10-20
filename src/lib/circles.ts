@@ -25,6 +25,10 @@ export interface MemberStats {
   studyingUntil: string | null;
   visible: boolean;
   updatedAt: string;
+  /** Last week's numbers, kept so the Monday wrap-up still works after the new week starts. */
+  prevWeekStart?: string | null;
+  prevWeekMinutes?: number;
+  prevWeekDays?: number;
 }
 export interface Member {
   circleId: string;
@@ -79,6 +83,8 @@ const fail = (e: { message?: string } | null) => {
   if (e) throw new Error(e.message ?? 'Something went wrong');
 };
 
+let hasPrevColumns = true;
+
 async function supabaseApi(): Promise<CirclesApi> {
   const sb = await getClient();
   return {
@@ -109,6 +115,9 @@ async function supabaseApi(): Promise<CirclesApi> {
             studyingUntil: s.studying_until,
             visible: s.visible,
             updatedAt: s.updated_at,
+            prevWeekStart: s.prev_week_start ?? null,
+            prevWeekMinutes: s.prev_week_minutes ?? 0,
+            prevWeekDays: s.prev_week_days ?? 0,
           },
         ]),
       );
@@ -120,7 +129,7 @@ async function supabaseApi(): Promise<CirclesApi> {
       return (data ?? []).map((c) => ({ id: c.id, circleId: c.circle_id, from: c.from_user, to: c.to_user, day: c.day }));
     },
     async pushStats(uid, s) {
-      const { error } = await sb.from('member_stats').upsert({
+      const row = {
         user_id: uid,
         week_start: s.weekStart,
         week_minutes: s.weekMinutes,
@@ -130,8 +139,16 @@ async function supabaseApi(): Promise<CirclesApi> {
         studying_until: s.studyingUntil,
         visible: s.visible,
         updated_at: new Date().toISOString(),
-      });
-      fail(error);
+      };
+      const prev = { prev_week_start: s.prevWeekStart ?? null, prev_week_minutes: s.prevWeekMinutes ?? 0, prev_week_days: s.prevWeekDays ?? 0 };
+      if (hasPrevColumns) {
+        const { error } = await sb.from('member_stats').upsert({ ...row, ...prev });
+        if (!error) return;
+        // The weekly wrap-up columns come from an update to circles-together.sql; work without them until it's run.
+        if (!/prev_week/.test(error.message)) fail(error);
+        hasPrevColumns = false;
+      }
+      fail((await sb.from('member_stats').upsert(row)).error);
     },
     async create(name, displayName) {
       const { data, error } = await sb.rpc('create_circle', { p_name: name, p_display_name: displayName });
@@ -241,8 +258,20 @@ export function myStats(sessions: Session[], studyingUntil: number | null, visib
     streak++;
     cur.setDate(cur.getDate() - 1);
   }
+  // Last week too, for the circle's Monday wrap-up.
+  const [py, pm, pd] = [y, m - 1, d - 7];
+  let prevWeekMinutes = 0;
+  let prevWeekDays = 0;
+  for (let i = 0; i < 7; i++) {
+    const min = byDay.get(dayKey(new Date(py, pm, pd + i))) ?? 0;
+    prevWeekMinutes += min;
+    if (min > 0) prevWeekDays |= 1 << i;
+  }
   return {
     weekStart,
+    prevWeekStart: dayKey(new Date(py, pm, pd)),
+    prevWeekMinutes: Math.min(10080, prevWeekMinutes),
+    prevWeekDays,
     weekMinutes: Math.min(10080, weekMinutes),
     weekDays,
     streak,
@@ -295,6 +324,48 @@ export function boardRows(members: Member[], stats: Record<string, MemberStats>,
     })
     .sort((a, b) => b.days - a.days || b.minutes - a.minutes || a.name.localeCompare(b.name));
 }
+
+/* ---------- weekly wrap-up ---------- */
+
+export interface WrapRow {
+  userId: string;
+  name: string;
+  minutes: number;
+  days: number;
+}
+export interface WeekWrap {
+  weekStart: string;
+  rows: WrapRow[];
+  total: number;
+  /** Most consistent (most days, then minutes). */
+  top: WrapRow;
+  /** Most focus time, when it's someone other than `top`. */
+  mostTime: WrapRow | null;
+}
+
+export function lastWeekKey(d = new Date()) {
+  return weekStartKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 7));
+}
+
+/** Last week's results for a circle, from each member's current or saved previous week. Null if nobody studied. */
+export function weekWrap(members: Member[], stats: Record<string, MemberStats>): WeekWrap | null {
+  const week = lastWeekKey();
+  const rows: WrapRow[] = [];
+  for (const m of members) {
+    const s = stats[m.userId];
+    if (!s) continue;
+    const src = s.weekStart === week ? { min: s.weekMinutes, mask: s.weekDays } : s.prevWeekStart === week ? { min: s.prevWeekMinutes ?? 0, mask: s.prevWeekDays ?? 0 } : null;
+    rows.push({ userId: m.userId, name: m.name, minutes: src?.min ?? 0, days: src ? popcount(src.mask) : 0 });
+  }
+  rows.sort((a, b) => b.days - a.days || b.minutes - a.minutes || a.name.localeCompare(b.name));
+  const total = rows.reduce((a, r) => a + r.minutes, 0);
+  if (!total) return null;
+  const byTime = [...rows].sort((a, b) => b.minutes - a.minutes)[0];
+  return { weekStart: week, rows, total, top: rows[0], mostTime: byTime.userId !== rows[0].userId ? byTime : null };
+}
+
+/** The wrap-up shows for the first three days of the new week. */
+export const wrapUpWindow = () => (new Date().getDay() + 6) % 7 <= 2;
 
 /* ---------- shared state ---------- */
 

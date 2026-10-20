@@ -4755,3 +4755,125 @@ input[type='date'] {
   color: var(--accent);
   border-color: color-mix(in srgb, var(--accent) 45%, transparent);
 }
+
+/* ---------- today card ---------- */
+.today-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 2px 2px 4px;
+  text-align: left;
+  color: inherit;
+}
+.today-head .eyebrow {
+  margin: 0;
+}
+.today-progress {
+  flex: none;
+  width: 64px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.today-progress span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 999px;
+  transition: width 0.4s var(--ease);
+}
+.today-chevron {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.2s var(--ease);
+}
+.today-card.is-collapsed .today-chevron {
+  transform: rotate(-90deg);
+}
+.today-card.is-collapsed .today-head {
+  padding-bottom: 2px;
+}
+
+/* ---------- undo ---------- */
+.undo-toast {
+  z-index: 32 !important;
+}
+.undo-toast .truncate {
+  max-width: min(240px, 52vw);
+}
+
+/* ---------- exam wrap-up ---------- */
+.wrapup {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.feelings {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+.feeling {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 4px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--text-2);
+  transition: all 0.15s var(--ease);
+}
+.feeling:hover {
+  border-color: var(--line-strong);
+}
+.feeling.is-active {
+  border-color: color-mix(in srgb, var(--accent) 60%, transparent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
+  color: var(--text);
+}
+.feeling-emoji {
+  font-size: 22px;
+  line-height: 1.2;
+}
+.wrapup .chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.wrapup .row {
+  flex-wrap: wrap;
+}
+.exam-result {
+  white-space: nowrap;
+}
+
+/* ---------- circle weekly wrap-up ---------- */
+.week-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-2));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.week-wrap p {
+  margin: 0;
+}
+.week-wrap-headline {
+  font-size: 14px;
+}
+.week-wrap-podium {
+  margin: 2px 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}

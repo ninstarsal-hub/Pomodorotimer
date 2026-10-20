@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Copy, Crown, Flame, LogOut, RefreshCw, Settings2, UserMinus, Users } from 'lucide-react';
-import { blockNames, boardRows, circlesApi, joinTogether, refreshCircles, startTogether, useCircles, type BoardRow, type Circle, type GroupBlock, type GroupRef } from '../lib/circles';
+import { Copy, Crown, Flame, LogOut, RefreshCw, Settings2, UserMinus, Users, X } from 'lucide-react';
+import { blockNames, boardRows, circlesApi, joinTogether, lastWeekKey, refreshCircles, startTogether, useCircles, weekWrap, wrapUpWindow, type BoardRow, type Circle, type GroupBlock, type GroupRef } from '../lib/circles';
 import { signIn, useSync } from '../lib/sync';
 import { fmtClock, fmtMinutes, usePersistentState } from '../lib/storage';
 import { useStore } from '../store';
@@ -159,6 +159,8 @@ function Board({ circle, me }: { circle: Circle; me: string }) {
           </button>
         </div>
       </div>
+
+      <WeekWrapCard circle={circle} />
 
       {circle.weeklyGoalMin > 0 && (
         <div className="goal-bar circle-goal">
@@ -469,6 +471,71 @@ function MySharing() {
   );
 }
 
+const weekLabel = (start: string) => {
+  const [y, m, d] = start.split('-').map(Number);
+  const a = new Date(y, m - 1, d);
+  const b = new Date(y, m - 1, d + 6);
+  const f = (x: Date) => x.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return `${f(a)} – ${f(b)}`;
+};
+
+/** Monday–Wednesday: how last week went for the whole circle. Dismissible per circle, per week. */
+function WeekWrapCard({ circle }: { circle: Circle }) {
+  const data = useCircles();
+  const [seen, setSeen] = usePersistentState<Record<string, string>>('circleWrapSeen', {});
+  const week = lastWeekKey();
+  if (!wrapUpWindow() || seen[circle.id] === week) return null;
+  const wrap = weekWrap(
+    data.members.filter((m) => m.circleId === circle.id),
+    data.stats,
+  );
+  if (!wrap) return null;
+  const goal = circle.weeklyGoalMin;
+  const podium = wrap.rows.filter((r) => r.minutes > 0).slice(0, 3);
+  const medals = ['🥇', '🥈', '🥉'];
+  return (
+    <div className="week-wrap">
+      <div className="row between">
+        <div className="eyebrow">Last week · {weekLabel(wrap.weekStart)}</div>
+        <button className="icon-btn small" onClick={() => setSeen((s) => ({ ...s, [circle.id]: week }))} aria-label="Dismiss last week’s wrap-up">
+          <X size={13} />
+        </button>
+      </div>
+      <p className="week-wrap-headline">
+        👑 <strong>{wrap.top.name}</strong> was most consistent — {wrap.top.days} day{wrap.top.days === 1 ? '' : 's'}, {fmtMinutes(wrap.top.minutes)}
+      </p>
+      {wrap.mostTime && (
+        <p className="small muted">
+          ⏱ Most focus time: <strong>{wrap.mostTime.name}</strong> ({fmtMinutes(wrap.mostTime.minutes)})
+        </p>
+      )}
+      <ol className="week-wrap-podium small">
+        {podium.map((r, i) => (
+          <li key={r.userId}>
+            <span>{medals[i]}</span> <strong>{r.name}</strong>{' '}
+            <span className="muted">
+              · {r.days}/7 days · {fmtMinutes(r.minutes)}
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="small">
+        Together: <strong>{fmtMinutes(wrap.total)}</strong>
+        {goal > 0 &&
+          (wrap.total >= goal ? (
+            <span className="accent"> — goal of {fmtMinutes(goal)} smashed ✓</span>
+          ) : (
+            <span className="muted">
+              {' '}
+              — {fmtMinutes(goal - wrap.total)} short of the {fmtMinutes(goal)} goal
+            </span>
+          ))}
+        . New week, fresh board — good luck!
+      </p>
+    </div>
+  );
+}
+
 /** Ticks once a second while mounted. */
 function useNow() {
   const [now, setNow] = useState(() => Date.now());
@@ -623,7 +690,7 @@ export function StudyingNowChip({ group, onOpen }: { group?: GroupRef; onOpen: (
  * Runs in the background while signed in: shares your numbers (debounced), refreshes the board,
  * and shows a small toast when a friend cheers you on.
  */
-export function CirclesAgent({ studyingUntil, group }: { studyingUntil: number | null; group?: GroupRef }) {
+export function CirclesAgent({ studyingUntil, group, onOpen }: { studyingUntil: number | null; group?: GroupRef; onOpen: () => void }) {
   const sync = useSync();
   const data = useCircles();
   const { sessions, settings } = useStore();
@@ -686,10 +753,46 @@ export function CirclesAgent({ studyingUntil, group }: { studyingUntil: number |
     return () => window.clearTimeout(t);
   }, [toast]);
 
-  if (!toast) return null;
-  return (
-    <div className="update-toast cheer-toast" role="status" onClick={() => setToast(null)}>
-      {toast}
-    </div>
-  );
+  // Once a week, early in the week: "your circle's week is in".
+  const [wrapToast, setWrapToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!uid || !wrapUpWindow() || !data.loadedAt) return;
+    const week = lastWeekKey();
+    if (localStorage.getItem('stillpoint:circleWrapToast') === week) return;
+    for (const c of data.circles) {
+      const wrap = weekWrap(
+        data.members.filter((m) => m.circleId === c.id),
+        data.stats,
+      );
+      if (!wrap) continue;
+      localStorage.setItem('stillpoint:circleWrapToast', week);
+      setWrapToast(`📊 ${c.name}’s week is in — ${wrap.top.userId === uid ? 'you' : wrap.top.name} took the crown 👑`);
+      return;
+    }
+  }, [uid, data.loadedAt, data.circles, data.members, data.stats]);
+  useEffect(() => {
+    if (!wrapToast) return;
+    const t = window.setTimeout(() => setWrapToast(null), 9000);
+    return () => window.clearTimeout(t);
+  }, [wrapToast]);
+
+  if (toast)
+    return (
+      <div className="update-toast cheer-toast" role="status" onClick={() => setToast(null)}>
+        {toast}
+      </div>
+    );
+  if (wrapToast)
+    return (
+      <button
+        className="update-toast cheer-toast"
+        onClick={() => {
+          setWrapToast(null);
+          onOpen();
+        }}
+      >
+        {wrapToast} <span className="accent">See →</span>
+      </button>
+    );
+  return null;
 }

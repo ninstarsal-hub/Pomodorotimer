@@ -8,6 +8,9 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 
 **Focus**
 - Pomodoro timer with Classic (25/5), Deep (50/10), Flow (70/15), Ultradian (90/20) and Sprint (15/3) presets, or set your own lengths
+- Today card under the timer: due reviews, assignments due soon, today's exam-plan tasks and to-dos, with progress for the day
+- Undo after deleting notes, tasks, exams, diagrams or practice sets (Undo button or Ctrl/Cmd+Z)
+- Exam wrap-up: the day after an exam, log how it went, your grade and which parts felt shaky, then quiz those parts or put them back into your reviews for the final
 - Mini timer: a small always-on-top window that stays visible while you work in other apps (Chrome and Edge on desktop)
 - Before each block you can write down what you plan to do. Afterwards you rate your focus and write a one-line summary from memory
 - Research-backed break ideas: doodling, drawing what you learned, going outside, an exercise snack, a brain dump, a power nap on long breaks, and more, each with a one-line summary of the study behind it. Breaks follow a recommended plan: doodle after the first block, a walk outside after the second, eyes-closed rest after the third, then a proper recharge (move, eat, maybe nap) on the long break. The plan can be turned off in Settings. Tap "Another idea" to shuffle, or browse the full list under Strategies
@@ -82,7 +85,7 @@ A calm, matte-black study space: a Pomodoro timer, a plan for the day, focus sou
 
 **Account sync (optional):** sign in with Google in Settings to keep notes, progress, plans, settings and images in sync between devices (newest edit wins per item; the timer stays per-device). Runs on Supabase's free plan and stays hidden until it's configured; see [SYNC-SETUP.md](SYNC-SETUP.md). Signing out keeps your notes on the device, and you can delete your account and cloud copy from Settings.
 
-**Study circles (optional, needs sync):** make a private circle of up to 12 friends and share an invite link. The board shows everyone's week: which days they studied, their focus time and streak, and who's in a focus block right now. It's ranked by days studied, then minutes. You can set a shared weekly goal and send one 👏 cheer per friend per day. Only those numbers are shared, never notes or subjects, and anyone can hide theirs. **Study together:** anyone in a circle can start a shared 25–90 minute block. Friends join with one tap, and everyone's timer ends at the same moment. The board, the main screen and the mini timer all show who's in the room. Run `supabase/circles.sql`, then `supabase/circles-together.sql`, to turn these on.
+**Study circles (optional, needs sync):** make a private circle of up to 12 friends and share an invite link. The board shows everyone's week: which days they studied, their focus time and streak, and who's in a focus block right now. It's ranked by days studied, then minutes. You can set a shared weekly goal and send one 👏 cheer per friend per day. Only those numbers are shared, never notes or subjects, and anyone can hide theirs. **Study together:** anyone in a circle can start a shared 25–90 minute block. Friends join with one tap, and everyone's timer ends at the same moment. The board, the main screen and the mini timer all show who's in the room. Early each week, the board shows last week's results: who was most consistent, the top three and whether the circle hit its goal. Run `supabase/circles.sql`, then `supabase/circles-together.sql`, to turn these on.
 
 Anonymous visit counts use Vercel Web Analytics (no cookies, no personal data); your notes and study data never leave your browser.
 

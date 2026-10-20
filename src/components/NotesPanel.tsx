@@ -7,6 +7,7 @@ import { DiagramList } from './Diagrams';
 import { deleteBlob } from '../lib/storage';
 import { diagramBlobKey } from '../lib/diagrams';
 import { useStore } from '../store';
+import { insertAt, offerUndo } from '../lib/undo';
 import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
 import { uid } from '../lib/storage';
 import { SAMPLE_NOTES } from '../lib/content';
@@ -14,7 +15,7 @@ import { ACCEPTED_FILES, ImportError, extractText, titleFromFile } from '../lib/
 import type { Card, Deck } from '../lib/types';
 
 export function NotesPanel() {
-  const { decks, setDecks, cards, unlocked, reviews, setTasks, setQuiz, setBuilderOpen, diagrams, setDiagrams } = useStore();
+  const { decks, setDecks, cards, unlocked, reviews, tasks, setTasks, setQuiz, setBuilderOpen, diagrams, setDiagrams } = useStore();
   const [editing, setEditing] = useState<string | null>(null);
   const [importing, setImporting] = useState<string | null>(null);
   const [importError, setImportError] = useState('');
@@ -74,12 +75,24 @@ export function NotesPanel() {
   };
 
   const remove = (id: string) => {
-    if (!confirm('Delete these notes and their questions?')) return;
+    const deck = decks.find((d) => d.id === id);
+    if (!deck) return;
+    const index = decks.indexOf(deck);
+    const linked = new Set(tasks.filter((t) => t.deckId === id).map((t) => t.id));
+    const dgs = diagrams.filter((x) => x.deckId === id);
     setDecks((ds) => ds.filter((d) => d.id !== id));
     setTasks((ts) => ts.map((t) => (t.deckId === id ? { ...t, deckId: undefined } : t)));
-    for (const dg of diagrams.filter((x) => x.deckId === id)) void deleteBlob(diagramBlobKey(dg.id));
     setDiagrams((ds) => ds.filter((x) => x.deckId !== id));
     if (editing === id) setEditing(null);
+    offerUndo(
+      `Deleted “${deck.title}”`,
+      () => {
+        setDecks((ds) => insertAt(ds, deck, index));
+        setTasks((ts) => ts.map((t) => (linked.has(t.id) ? { ...t, deckId: id } : t)));
+        setDiagrams((ds) => [...ds, ...dgs.filter((d) => !ds.some((x) => x.id === d.id))]);
+      },
+      () => dgs.forEach((dg) => void deleteBlob(diagramBlobKey(dg.id))),
+    );
   };
 
   return (

@@ -4,7 +4,10 @@ import { useStore, sectionKey } from '../store';
 import { buildPlan, addDays, cardScore, type ExamPlan, type PlanItem } from '../lib/planner';
 import { buildQuiz, deckSections, isDue, sectionLabel } from '../lib/quiz';
 import { uid } from '../lib/storage';
+import { insertAt, offerUndo } from '../lib/undo';
+import type { Exam } from '../lib/types';
 import { PlanCalendar } from './PlanCalendar';
+import { FEELINGS, openWrapUp } from './ExamWrapUp';
 
 /** All upcoming exam plans, soonest first. */
 export function usePlans(): ExamPlan[] {
@@ -120,6 +123,11 @@ export function PlanPanel() {
   };
 
   const past = exams.filter((e) => !plans.some((p) => p.exam.id === e.id));
+  const removeExam = (e: Exam) => {
+    const index = exams.findIndex((x) => x.id === e.id);
+    setExams((xs) => xs.filter((x) => x.id !== e.id));
+    offerUndo(`Deleted “${e.title}”`, () => setExams((xs) => insertAt(xs, e, index)));
+  };
 
   return (
     <div className="stack">
@@ -190,7 +198,7 @@ export function PlanPanel() {
       {view === 'calendar' && (plans.length > 0 || hasDue) ? (
         <PlanCalendar plans={plans} />
       ) : (
-        plans.map((p) => <ExamCard key={p.exam.id} plan={p} onRemove={() => setExams((xs) => xs.filter((x) => x.id !== p.exam.id))} />)
+        plans.map((p) => <ExamCard key={p.exam.id} plan={p} onRemove={() => removeExam(p.exam)} />)
       )}
 
       {past.length > 0 && (
@@ -201,8 +209,21 @@ export function PlanPanel() {
               <li key={e.id} className="task is-carry">
                 <span className="task-title">
                   {e.title} <span className="muted small">· {e.date}</span>
+                  {e.result && (
+                    <span className="small exam-result" title={`Felt ${FEELINGS.find((f) => f.v === e.result!.feeling)?.label.toLowerCase()}`}>
+                      {' '}
+                      {FEELINGS.find((f) => f.v === e.result!.feeling)?.emoji}
+                      {e.result.score ? ` ${e.result.score}` : ''}
+                      {e.result.shaky.length ? <span className="muted"> · {e.result.shaky.length} shaky</span> : null}
+                    </span>
+                  )}
                 </span>
-                <button className="icon-btn small" onClick={() => setExams((xs) => xs.filter((x) => x.id !== e.id))} aria-label="Delete exam">
+                {decks.some((d) => d.id === e.deckId) && (
+                  <button className="link-btn small" onClick={() => openWrapUp(e.id)}>
+                    {e.result ? 'Edit' : 'How did it go?'}
+                  </button>
+                )}
+                <button className="icon-btn small" onClick={() => removeExam(e)} aria-label="Delete exam">
                   <Trash2 size={14} />
                 </button>
               </li>
@@ -233,7 +254,7 @@ function ExamCard({ plan, onRemove }: { plan: ExamPlan; onRemove: () => void }) 
             {when} · {exam.date} · {sections.length} section{sections.length === 1 ? '' : 's'}
           </div>
         </div>
-        <button className="icon-btn small" onClick={() => confirm('Delete this exam and its plan?') && onRemove()} aria-label="Delete exam">
+        <button className="icon-btn small" onClick={onRemove} aria-label="Delete exam">
           <Trash2 size={14} />
         </button>
       </div>
