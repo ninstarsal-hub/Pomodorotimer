@@ -182,40 +182,50 @@ export default function App() {
     [durations, setTimer],
   );
 
+  /** Saves a finished (or partly finished) focus block to your history. */
+  const recordSession = useCallback(
+    (t: TimerState, minutes: number): string | null => {
+      if (minutes < 1) return null;
+      const sessionId = uid();
+      const at = Date.now();
+      const studySessionId = store.ensureStudySession().id;
+      // Include a stretch away that's still open (e.g. the block ended while you were in another tab).
+      const openAway = t.awaySince && Date.now() - t.awaySince >= 10_000 ? Date.now() - t.awaySince : 0;
+      const awayMs = (t.awayMs ?? 0) + openAway;
+      const awayCount = (t.awayCount ?? 0) + (openAway ? 1 : 0);
+      const away = awayMs >= 60_000 ? { count: awayCount, ms: awayMs, kind: t.otherApps ? ('study' as const) : undefined } : undefined;
+      store.touchStudySession(studySessionId);
+      const deck = studyingNow ? store.decks.find((d) => d.id === studyingNow.deckId) : undefined;
+      const section = deck ? [deck.title, studyingNow!.section ? sectionLabel(studyingNow!.section, deck) : ''].filter(Boolean).join(' · ') : undefined;
+      setSessions((s) => [
+        ...s,
+        {
+          id: sessionId,
+          day: dayKey(),
+          at,
+          minutes,
+          taskId: activeTask?.id,
+          subject: activeTask?.subject || undefined,
+          intention: t.intention || undefined,
+          recall: t.recall || undefined,
+          studySessionId,
+          section,
+          ...(away ? { away } : {}),
+        },
+      ]);
+      return sessionId;
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [activeTask, setSessions, studyingNow, store.liveStudy?.id],
+  );
+
   const finishPhase = useCallback(
     (skipped: boolean) => {
       const t = timer;
       if (t.mode === 'focus') {
-        const minutes = skipped ? Math.floor(elapsed / 60_000) : t.focusMs ? Math.round(t.focusMs / 60_000) : settings.focusMin;
-        let sessionId: string | null = null;
-        if (minutes >= 1) {
-          sessionId = uid();
-          const at = Date.now();
-          const studySessionId = store.ensureStudySession().id;
-          // Include a stretch away that's still open (e.g. the block ended while you were in another tab).
-          const openAway = t.awaySince && Date.now() - t.awaySince >= 10_000 ? Date.now() - t.awaySince : 0;
-          const awayMs = (t.awayMs ?? 0) + openAway;
-          const awayCount = (t.awayCount ?? 0) + (openAway ? 1 : 0);
-          const away = awayMs >= 60_000 ? { count: awayCount, ms: awayMs, kind: t.otherApps ? ('study' as const) : undefined } : undefined;
-          store.touchStudySession(studySessionId);
-          const deck = studyingNow ? store.decks.find((d) => d.id === studyingNow.deckId) : undefined;
-          const section = deck ? [deck.title, studyingNow!.section ? sectionLabel(studyingNow!.section, deck) : ''].filter(Boolean).join(' · ') : undefined;
-          setSessions((s) => [
-            ...s,
-            {
-              id: sessionId!,
-              day: dayKey(),
-              at,
-              minutes,
-              taskId: activeTask?.id,
-              subject: activeTask?.subject || undefined,
-              intention: t.intention || undefined,
-              recall: t.recall || undefined,
-              studySessionId,
-              section,
-              ...(away ? { away } : {}),
-            },
-          ]);
+        const minutes = skipped ? (t.group ? Math.round : Math.floor)(elapsed / 60_000) : t.focusMs ? Math.round(t.focusMs / 60_000) : settings.focusMin;
+        const sessionId = recordSession(t, minutes);
+        if (sessionId) {
           if (activeTask && !skipped) setTasks((ts) => ts.map((x) => (x.id === activeTask.id ? { ...x, pomos: x.pomos + 1 } : x)));
         }
         const cycle = skipped ? t.cycle : t.cycle + 1;
@@ -236,7 +246,7 @@ export default function App() {
       setCheckpoint(false);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [timer, elapsed, settings, activeTask, setSessions, setTasks, goTo, studyingNow, store.liveStudy?.id],
+    [timer, elapsed, settings, activeTask, setTasks, goTo, recordSession],
   );
 
   // Phase completion
@@ -275,15 +285,32 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.notifications, settings.warmupQuiz, timer.started, timer.mode, earlierCards, reviews, setTimer, store.liveStudy?.id]);
 
+  /**
+   * Leaving a shared block early saves the time you spent in it. What's left becomes its own block,
+   * so finishing it solo (or rejoining) adds only the rest.
+   */
+  const saveGroupPart = useCallback(() => {
+    const t = timer;
+    if (t.mode !== 'focus' || !t.group) return null;
+    const rem = t.endAt ? Math.max(0, t.endAt - Date.now()) : t.remaining;
+    recordSession(t, Math.round(((t.focusMs ?? rem) - rem) / 60_000));
+    return rem;
+  }, [timer, recordSession]);
+
   const pause = useCallback(() => {
-    // Pausing a shared block leaves it; the rest of the block carries on as your own.
-    setTimer((t) => ({ ...t, running: false, endAt: null, remaining: t.endAt ? Math.max(0, t.endAt - Date.now()) : t.remaining, group: undefined }));
-  }, [setTimer]);
+    const rem = saveGroupPart();
+    if (rem !== null) {
+      setTimer((t) => ({ ...t, running: false, endAt: null, remaining: rem, focusMs: rem, group: undefined, awayCount: 0, awayMs: 0, awaySince: null }));
+      return;
+    }
+    setTimer((t) => ({ ...t, running: false, endAt: null, remaining: t.endAt ? Math.max(0, t.endAt - Date.now()) : t.remaining }));
+  }, [setTimer, saveGroupPart]);
 
   const reset = useCallback(() => {
+    saveGroupPart();
     setTimer((t) => ({ ...t, running: false, started: false, endAt: null, remaining: durations[t.mode], checkpointFired: false, awayCount: 0, awayMs: 0, awaySince: null, focusMs: undefined, group: undefined }));
     setCheckpoint(false);
-  }, [durations, setTimer]);
+  }, [durations, setTimer, saveGroupPart]);
 
   // Study together: a circle's shared block. Your timer counts down to the same end time as everyone else's.
   const joinGroup = useCallback(
