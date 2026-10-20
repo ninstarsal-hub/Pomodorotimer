@@ -4718,21 +4718,21 @@ input[type='date'] {
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
-.mini-bar {
+.mini-progress {
   width: 100%;
   height: 3px;
   border-radius: 3px;
   background: var(--surface-3);
   overflow: hidden;
 }
-.mini-bar span {
+.mini-progress span {
   display: block;
   height: 100%;
   background: var(--accent);
   transition: width 0.25s linear;
 }
-.mini.mode-short .mini-bar span,
-.mini.mode-long .mini-bar span {
+.mini.mode-short .mini-progress span,
+.mini.mode-long .mini-progress span {
   background: #6fd08c;
 }
 .mini-controls {

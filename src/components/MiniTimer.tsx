@@ -82,7 +82,7 @@ export function MiniTimer(p: Props) {
         {p.group && <span className="mini-group"> · together{others.length ? ` with ${others.slice(0, 2).join(' & ')}${others.length > 2 ? ` +${others.length - 2}` : ''}` : ''}</span>}
       </div>
       <div className="mini-time">{fmtClock(p.remaining)}</div>
-      <div className="mini-bar">
+      <div className="mini-progress">
         <span style={{ width: `${progress * 100}%` }} />
       </div>
       <div className="mini-controls">
